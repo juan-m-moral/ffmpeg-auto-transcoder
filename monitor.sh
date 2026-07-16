@@ -351,14 +351,13 @@ calcular_eta()
 
     ETA=0
 
-    if (( $(echo "$s > 0" | bc -l) ))
-    then
-
-        ETA=$(awk \
-            -v r="$RESTANTE" \
-            -v s="$s" \
-            'BEGIN{printf "%.0f",r/s}')
-
+    if [[ "$s" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        if (( $(echo "$s > 0" | bc -l) )); then
+            ETA=$(awk \
+                -v r="$RESTANTE" \
+                -v s="$s" \
+                'BEGIN{printf "%.0f", r/s}')
+        fi
     fi
 }
 
