@@ -1,0 +1,13 @@
+# Claves personales
+config.sh
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
