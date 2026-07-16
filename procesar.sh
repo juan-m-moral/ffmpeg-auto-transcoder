@@ -4,8 +4,8 @@
 # Analizador + reescalador a 4K (Acelerado por NVIDIA NVENC GPU)
 ###############################################################################
 source ./config.sh
-source ./tmdb.sh
-source ./omdb.sh
+source ./lib/tmdb.sh
+source ./lib/omdb.sh
 set -Eeuo pipefail
 IFS=$'\n\t'
 export LC_NUMERIC=C
@@ -24,12 +24,12 @@ mkdir -p "$OUTPUT" "$JELLYFIN_DIR" "$LOGDIR" "$DONEDIR" "$ERRDIR"
 
 LOGFILE="${LOGDIR}/procesar_$(date +%F_%H-%M-%S).log"
 
-TARGET_GB=20
-TARGET_MIN=150
-TARGET_TOTAL_BPS=$(awk -v gb="$TARGET_GB" -v min="$TARGET_MIN" 'BEGIN{printf "%.0f", (gb*1024*1024*1024*8)/(min*60)}')
-MIN_VIDEO_BPS=8000000
-TARGET_W=3840  
-TARGET_H=2160
+
+TARGET_TOTAL_BPS=$(awk \
+    -v gb="$TARGET_GB" \
+    -v min="$TARGET_MIN" \
+    'BEGIN{printf "%.0f", (gb*1024*1024*1024*8)/(min*60)}')
+
 
 ###############################################################################
 # FUNCIONES
