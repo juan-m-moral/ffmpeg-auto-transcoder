@@ -64,28 +64,44 @@ done
 ###############################################################################
 # BUSCAR PELÍCULAS
 ###############################################################################
-mapfile -d '' MOVIES < <(
-find "$INPUT" -type f \( \
-    -iname "*.mkv" -o \
-    -iname "*.mp4" -o \
-    -iname "*.avi" -o \
-    -iname "*.m2ts" -o \
-    -iname "*.ts" \
-\) -print0 | sort -z
-)
 
-[[ ${#MOVIES[@]} -gt 0 ]] || error "No hay películas en el directorio de entrada"
+PROGRESS_FILE="${LOGDIR}/ffmpeg.progress"
+EXTRA_FILE="${LOGDIR}/ffmpeg.extra"
+
+while true
+do
+    mapfile -d '' MOVIES < <(
+        find "$INPUT" -type f \( \
+            -iname "*.mkv" -o \
+            -iname "*.mp4" -o \
+            -iname "*.avi" -o \
+            -iname "*.m2ts" -o \
+            -iname "*.ts" \
+        \) -print0 | sort -z
+    )
+
+    if (( ${#MOVIES[@]} == 0 )); then
+
+        cat > "$EXTRA_FILE" <<EOF
+ESTADO=esperando
+EOF
+
+        : > "$PROGRESS_FILE"
+
+        sleep 5
+        continue
+    fi
 
 ###############################################################################
 # PROCESAR
 ###############################################################################
-for FILE in "${MOVIES[@]}"
-do
-    [[ -f "$FILE" ]] || continue
+    for FILE in "${MOVIES[@]}"
+    do
+        [[ -f "$FILE" ]] || continue
 
-    BASENAME=$(basename "$FILE")
-    NAME="${BASENAME%.*}"
-    OUTFILE="${OUTPUT}/${NAME}.mkv"
+        BASENAME=$(basename "$FILE")
+        NAME="${BASENAME%.*}"
+        OUTFILE="${OUTPUT}/${NAME}.mkv"
 
     log "==============================================================="
     log "Archivo: $BASENAME"
@@ -269,11 +285,6 @@ START_EPOCH=$(date +%s)
 # Reiniciar fichero de progreso
 ###############################################################################
 
-mkdir -p "$(dirname "$PROGRESS_FILE")"
-
-rm -f "$PROGRESS_FILE"
-: > "$PROGRESS_FILE"
-
 lanzar_ffmpeg() {
 
     ffmpeg -y -v error \
@@ -307,7 +318,9 @@ rm -f "$CANCELADO_TESTIGO"
 
 # Forzamos la creación del archivo limpio para despertar al panel izquierdo
 PROGRESS_FILE="${LOGDIR}/ffmpeg.progress"
-echo "progress=continue" > "$PROGRESS_FILE"
+
+rm -f "$PROGRESS_FILE"
+: > "$PROGRESS_FILE"
 
 # Archivo auxiliar para el monitor (NO lo toca FFmpeg)
 EXTRA_FILE="${LOGDIR}/ffmpeg.extra"
@@ -339,7 +352,7 @@ for intento in 1 2; do
 
         if [[ -f "$PROGRESS_FILE" ]]; then
             # 1. CAPTURA Y ANEXO DEL USO DEL ENCODER (NVIDIA NVENC)
-            nvenc_usage=$(nvidia-smi --query-gpu=utilization.encoder --format=csv,noheader,nounits -i 0 2>/dev/null | tr -d '[:space:]' || echo "0")
+            encoder_usage=$(nvidia-smi --query-gpu=utilization.encoder --format=csv,noheader,nounits -i 0 2>/dev/null | tr -d '[:space:]' || echo "0")
 # Leer FPS real
 linea_fps=$(grep "^fps=" "$PROGRESS_FILE" | tail -1 || true)
 
@@ -354,15 +367,21 @@ linea_q=$(grep "^stream_0_0_q=" "$PROGRESS_FILE" | tail -1 || true)
     && current_q="${BASH_REMATCH[1]}" \
     || current_q="0.0"
 
+PID=$FFMPEG_PID
+
+echo "DEBUG FFMPEG_PID=[$FFMPEG_PID]"
+echo "DEBUG PID=[$PID]"
+
 # Escribir archivo auxiliar para el monitor
 cat > "$EXTRA_FILE" <<EOF
-encoder_usage="${nvenc_usage}%"
-current_fps="${current_fps}"
-current_q="${current_q}"
+encoder_usage=${encoder_usage}
+current_q=${current_q}
 START_EPOCH=${START_EPOCH}
 CURRENT_FILE="${BASENAME}"
 TITULO="${TITLE}"
 RAW_DUR=${DURATION_INT}
+PID=${FFMPEG_PID}
+ESTADO=codificando
 EOF
 
 # 2. COMPROBAR SI FFMPEG SIGUE AVANZANDO
@@ -436,5 +455,9 @@ else
 fi
 done
 
-log "Procesamiento del lote finalizado."
+log "Lote terminado. Esperando nuevas películas..."
+
+sleep 5
+
+done
 

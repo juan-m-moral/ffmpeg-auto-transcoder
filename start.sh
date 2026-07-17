@@ -6,8 +6,12 @@ echo
 echo "Iniciando FFmpeg Auto Transcoder..."
 echo
 
-nohup ./procesar.sh >/mnt/dd2/logs/nohup.log 2>&1 &
+if ! pgrep -f "[p]rocesar.sh" >/dev/null; then
+    nohup ./procesar.sh >/mnt/dd2/logs/nohup.log 2>&1 &
+else
+    echo "Procesar ya está en ejecución."
+fi
 
 sleep 1
 
-./monitor.sh
+exec ./monitor.sh

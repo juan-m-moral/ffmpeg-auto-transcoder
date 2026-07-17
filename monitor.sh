@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd "$(dirname "$0")" || exit 1
+
 source ./config.sh
 
 ###############################################################################
@@ -113,23 +115,24 @@ GPU_TEMP=${GPU_TEMP:-0}
 
 estado()
 {
-    if [[ ! -f "$PROGRESS_FILE" ]]
-    then
-        ESTADO="Esperando FFmpeg..."
+    if [[ ! -f "$PROGRESS_FILE" ]]; then
 
-    elif (( FRAME > 0 ))
-    then
-        ESTADO="Codificando..."
+        ESTADO="Esperando FFmpeg"
 
-    elif [[ "$STATUS" == "end" ]]
-    then
-        ESTADO="Finalizando..."
+    elif [[ "$STATUS" == "end" ]]; then
+
+        ESTADO="Finalizando"
+
+    elif (( FRAME == 0 )); then
+
+        ESTADO="Esperando primeros fotogramas"
 
     else
-        ESTADO="Iniciando..."
+
+        ESTADO="Codificando correctamente"
+
     fi
 }
-
 ###############################################################################
 # BARRA DE PROGRESO
 ###############################################################################
@@ -161,57 +164,6 @@ porcentaje=$(printf "%.0f" "$porcentaje")
     printf "%s" "$barra"
 }
 
-###############################################################################
-# LEER LOG
-###############################################################################
-
-leer_log()
-{
-    LOGFILE=$(ls -t "$LOGDIR"/procesar_*.log 2>/dev/null | head -1)
-
-    [[ -z "$LOGFILE" ]] && return 1
-
-    CURRENT_FILE=$(
-        grep "Archivo:" "$LOGFILE" \
-        | tail -1 \
-        | sed 's/.*Archivo: //'
-    )
-
-    TITULO=$(
-        grep -E "^(Título:|Titulo:)" "$LOGFILE" \
-        | tail -1 \
-        | sed -E 's/^(Título:|Titulo:)[[:space:]]*//'
-    )
-
-    [[ -z "$TITULO" ]] && TITULO="$CURRENT_FILE"
-
-[[ -z "$CURRENT_FILE" ]] && CURRENT_FILE="Desconocido"
-
-    return 0
-}
-
-###############################################################################
-# OBTENER DURACIÓN
-###############################################################################
-
-obtener_duracion()
-{
-    FULL_PATH="$INPUTDIR/$CURRENT_FILE"
-
-    RAW_DUR=$(
-        ffprobe \
-            -v quiet \
-            -show_entries format=duration \
-            -of default=noprint_wrappers=1:nokey=1 \
-            "$FULL_PATH" 2>/dev/null
-    )
-
-    RAW_DUR=${RAW_DUR%.*}
-
-    [[ -z "$RAW_DUR" ]] && RAW_DUR=0
-
-    return 0
-}
 
 ###############################################################################
 # LEER PROGRESS
@@ -338,6 +290,15 @@ power.draw \
     GPU_POWER=$(echo "$GPU_POWER" | xargs)
 }
 
+obtener_pid()
+{
+    PID=$(pgrep -x ffmpeg | head -n1)
+
+    if [[ -z "$PID" ]]; then
+        PID="---"
+    fi
+}
+
 ###############################################################################
 # ETA
 ###############################################################################
@@ -385,12 +346,21 @@ leer_extra()
     current_q="0.0"
     START_EPOCH=0
 
-    if [[ -f "$EXTRA_FILE" ]]
-    then
-        source "$EXTRA_FILE"
-    fi
-}
+    CURRENT_FILE="Esperando..."
+    TITULO=""
 
+    RAW_DUR=0
+
+    PID="-"
+
+ESTADO="esperando"
+
+if [[ -f "$EXTRA_FILE" ]]; then
+    source "$EXTRA_FILE"
+
+    ESTADO="${ESTADO:-esperando}"
+fi
+}
 ###############################################################################
 # PANTALLA
 ###############################################################################
@@ -405,7 +375,7 @@ pintar()
 
     echo -e "${BLUE}${BOLD}"
     echo "══════════════════════════════════════════════════════════════════════════════"
-    echo "                     MONITOR DD2 v3"
+    echo "                           MONITOR"
     echo "══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RESET}"
 
@@ -509,7 +479,15 @@ echo -e "${BOLD}ESTADO${RESET}"
 
 echo
 
-echo -e "${GREEN}●${RESET} $ESTADO"
+printf "%-18s %b●%b %s\n" \
+    "Estado:" \
+    "$GREEN" \
+    "$RESET" \
+    "$ESTADO"
+
+printf "%-18s %s\n" \
+    "PID:" \
+    "$PID"
 
 echo
 
@@ -536,26 +514,20 @@ pintar_sin_proceso()
 # PROGRAMA PRINCIPAL
 ###############################################################################
 
-leer_log || {
-    echo
-    echo "No hay ninguna codificación en curso."
-    echo
-    exit 1
-}
-
-obtener_duracion
-
 while true
 do
-    # Si FFmpeg no está ejecutándose, mostrar pantalla de espera
-    if ! pgrep -x ffmpeg >/dev/null; then
-        pintar_sin_proceso
-        sleep "$REFRESH"
-        continue
-    fi
+    leer_extra
+
+    sleep 2
+
+if [[ "$ESTADO" == "esperando" ]]
+then
+    pintar_sin_proceso
+    sleep "$REFRESH"
+    continue
+fi
 
     leer_progress
-    leer_extra
     calcular_progreso
     leer_gpu
     calcular_eta
