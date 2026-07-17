@@ -265,6 +265,15 @@ START_EPOCH=$(date +%s)
 
     log "Iniciando transcodificación por GPU..."
 
+###############################################################################
+# Reiniciar fichero de progreso
+###############################################################################
+
+mkdir -p "$(dirname "$PROGRESS_FILE")"
+
+rm -f "$PROGRESS_FILE"
+: > "$PROGRESS_FILE"
+
 lanzar_ffmpeg() {
 
     ffmpeg -y -v error \

@@ -115,25 +115,18 @@ estado()
 {
     if [[ ! -f "$PROGRESS_FILE" ]]
     then
-        ESTADO="INICIANDO..."
+        ESTADO="Esperando FFmpeg..."
+
+    elif (( FRAME > 0 ))
+    then
+        ESTADO="Codificando..."
 
     elif [[ "$STATUS" == "end" ]]
     then
-        ESTADO="FINALIZANDO..."
-
-    elif (( FRAME == 0 ))
-    then
-        ESTADO="ESPERANDO PRIMEROS FOTOGRAMAS..."
+        ESTADO="Finalizando..."
 
     else
-        PID=$(pgrep -f "[p]rocesar.sh" | head -1)
-
-        if [[ -n "$PID" ]]
-        then
-            ESTADO="ACTIVO (PID: $PID)"
-        else
-            ESTADO="ACTIVO"
-        fi
+        ESTADO="Iniciando..."
     fi
 }
 
@@ -522,6 +515,23 @@ echo
 
 }
 
+pintar_sin_proceso()
+{
+    clear
+
+    echo -e "${BLUE}${BOLD}"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo "                           MONITOR"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo -e "${RESET}"
+
+    echo
+    echo -e "${YELLOW}●${RESET} No hay ninguna codificación en curso."
+    echo
+    echo "Esperando una nueva película..."
+    echo
+}
+
 ###############################################################################
 # PROGRAMA PRINCIPAL
 ###############################################################################
@@ -537,29 +547,25 @@ obtener_duracion
 
 while true
 do
+    # Si FFmpeg no está ejecutándose, mostrar pantalla de espera
+    if ! pgrep -x ffmpeg >/dev/null; then
+        pintar_sin_proceso
+        sleep "$REFRESH"
+        continue
+    fi
 
     leer_progress
-
     leer_extra
-
     calcular_progreso
-
     leer_gpu
-
     calcular_eta
-
     hora_finalizacion
-
     tiempo_transcurrido
-
     calcular_colores
-
     estado
-
     pintar
 
     sleep "$REFRESH"
-
 done
 
 
