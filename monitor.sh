@@ -115,19 +115,25 @@ estado()
 {
     if [[ ! -f "$PROGRESS_FILE" ]]
     then
-        ESTADO="Esperando FFmpeg"
+        ESTADO="INICIANDO..."
 
     elif [[ "$STATUS" == "end" ]]
     then
-        ESTADO="Finalizando"
+        ESTADO="FINALIZANDO..."
 
     elif (( FRAME == 0 ))
     then
-        ESTADO="Esperando primeros fotogramas"
+        ESTADO="ESPERANDO PRIMEROS FOTOGRAMAS..."
 
     else
-        ESTADO="Codificando correctamente"
+        PID=$(pgrep -f "[p]rocesar.sh" | head -1)
 
+        if [[ -n "$PID" ]]
+        then
+            ESTADO="ACTIVO (PID: $PID)"
+        else
+            ESTADO="ACTIVO"
+        fi
     fi
 }
 
