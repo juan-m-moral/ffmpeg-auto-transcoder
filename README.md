@@ -1,6 +1,8 @@
-# FFmpeg Auto Transcoder
+# FFmpeg Auto Transcoder for Jellyfin
 
 Sistema automático de transcodificación de películas mediante FFmpeg y NVIDIA NVENC.
+
+![Monitor](docs/monitor-web.png)
 
 El servicio permanece en ejecución continuamente, detecta nuevas películas automáticamente y las procesa sin intervención del usuario. Incluye un monitor en tiempo real para consultar el estado de la codificación.
 
