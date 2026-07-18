@@ -348,18 +348,14 @@ leer_extra()
 
     CURRENT_FILE="Esperando..."
     TITULO=""
-
     RAW_DUR=0
-
     PID="-"
 
-ESTADO="esperando"
+    ESTADO="esperando"
 
-if [[ -f "$EXTRA_FILE" ]]; then
-    source "$EXTRA_FILE"
-
-    ESTADO="${ESTADO:-esperando}"
-fi
+    if [[ -f "$EXTRA_FILE" ]]; then
+        source "$EXTRA_FILE"
+    fi
 }
 ###############################################################################
 # PANTALLA
@@ -511,21 +507,47 @@ pintar_sin_proceso()
 }
 
 ###############################################################################
+# SERVICIO DETENIDO
+###############################################################################
+
+pintar_servicio_parado()
+{
+    clear
+
+    echo -e "${RED}${BOLD}"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo "                           MONITOR"
+    echo "══════════════════════════════════════════════════════════════════════════════"
+    echo -e "${RESET}"
+
+    echo
+    echo -e "${RED}●${RESET} El servicio procesar.service está detenido."
+    echo
+    echo "Arráncalo con:"
+    echo
+    echo "sudo systemctl start procesar.service"
+    echo
+}
+
+###############################################################################
 # PROGRAMA PRINCIPAL
 ###############################################################################
 
 while true
 do
+    if ! systemctl is-active --quiet procesar.service; then
+        pintar_servicio_parado
+        sleep "$REFRESH"
+        continue
+    fi
+
     leer_extra
 
-    sleep 2
-
-if [[ "$ESTADO" == "esperando" ]]
-then
-    pintar_sin_proceso
-    sleep "$REFRESH"
-    continue
-fi
+    if [[ "$ESTADO" == "esperando" ]]; then
+        pintar_sin_proceso
+        sleep "$REFRESH"
+        continue
+    fi
 
     leer_progress
     calcular_progreso

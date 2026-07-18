@@ -1,6 +1,8 @@
 # FFmpeg Auto Transcoder
 
-Transcodificador automático de películas desarrollado en Bash utilizando FFmpeg y aceleración por hardware NVIDIA NVENC.
+Sistema automático de transcodificación de películas mediante FFmpeg y NVIDIA NVENC.
+
+El servicio permanece en ejecución continuamente, detecta nuevas películas automáticamente y las procesa sin intervención del usuario. Incluye un monitor en tiempo real para consultar el estado de la codificación.
 
 El proyecto nace con el objetivo de automatizar por completo el procesamiento de una biblioteca de películas. Analiza cada vídeo, calcula automáticamente el bitrate más adecuado, procesa el contenido a HEVC (H.265), lo reescala a 4K cuando es necesario, conserva la información multimedia original y organiza el resultado para su integración en una biblioteca Jellyfin.
 
@@ -14,16 +16,15 @@ Este proyecto ha sido desarrollado con un enfoque práctico, priorizando la auto
 
 ## Características
 
-- Transcodificación automática de películas.
-- Codificación por hardware mediante NVIDIA NVENC.
-- Reescalado automático a resolución 4K.
-- Conservación de pistas de audio y subtítulos.
-- Renombrado automático mediante TMDb y OMDb.
-- Compatible con bibliotecas Jellyfin.
-- Monitor en tiempo real con información de FFmpeg y de la GPU.
-- Configuración centralizada mediante `config.sh`.
-- Registro completo de todas las operaciones.
-- Organización automática de películas procesadas y errores.
+- Transcodificación automática mediante FFmpeg.
+- Aceleración por GPU NVIDIA (NVENC).
+- Espera permanente de nuevas películas.
+- Inicio automático mediante systemd.
+- Monitor independiente en tiempo real.
+- Cálculo de ETA y progreso.
+- Información de GPU (uso, temperatura, VRAM, encoder...).
+- Conservación de audio y subtítulos.
+- Obtención automática de metadatos desde TMDb y OMDb.
 ---
 
 ## Requisitos
@@ -56,44 +57,79 @@ Es necesario disponer de claves API para:
 
 ---
 
-## Instalación
+## Instalación del servicio
 
-Clona el repositorio:
-
-```bash
-git clone https://github.com/mcjmm1-gif/ffmpeg-auto-transcoder.git
-```
-
-Accede al directorio del proyecto:
+Copiar el servicio:
 
 ```bash
-cd ffmpeg-auto-transcoder
+sudo cp procesar.service /etc/systemd/system/
 ```
 
-Configura el archivo `config.sh` según tu sistema:
-
-- Ruta del disco de trabajo.
-- Claves API de TMDb y OMDb.
-- Resolución de salida.
-- Parámetros de calidad.
-
-Concede permisos de ejecución a los scripts si es necesario:
+Recargar systemd:
 
 ```bash
-chmod +x *.sh
+sudo systemctl daemon-reload
 ```
 
-Ejecuta el transcodificador:
+Activarlo para que arranque con el sistema:
 
 ```bash
-./procesar.sh
+sudo systemctl enable procesar.service
 ```
 
-En otra terminal puedes iniciar el monitor:
+Iniciarlo:
+
+```bash
+sudo systemctl start procesar.service
+```
+
+---
+
+## Administración del servicio
+
+Consultar estado:
+
+```bash
+systemctl status procesar.service
+```
+
+Detener:
+
+```bash
+sudo systemctl stop procesar.service
+```
+
+Iniciar:
+
+```bash
+sudo systemctl start procesar.service
+```
+
+Reiniciar:
+
+```bash
+sudo systemctl restart procesar.service
+```
+
+---
+
+## Monitor
+
+El monitor es completamente independiente del servicio.
+
+Puede abrirse y cerrarse en cualquier momento:
 
 ```bash
 ./monitor.sh
----
+```
+
+No es necesario iniciarlo al arrancar el servicio. Puede ejecutarse en cualquier momento para consultar el estado del transcodificador.
+
+El monitor distingue tres estados:
+
+- Servicio detenido.
+- Esperando nuevas películas.
+- Codificando una película.
 
 ## Configuración
 
@@ -101,7 +137,10 @@ Toda la configuración del proyecto se encuentra centralizada en el archivo:
 
 ```text
 config.sh
+```
+
 ---
+
 
 ## Estructura del proyecto
 
@@ -111,6 +150,7 @@ ffmpeg-auto-transcoder/
 ├── config.sh              Configuración general
 ├── procesar.sh            Motor principal de transcodificación
 ├── monitor.sh             Monitor en tiempo real
+├── procesar.service      Servicio systemd
 ├── tmdb.sh                Acceso a la API de TMDb
 ├── omdb.sh                Acceso a la API de OMDb
 ├── Dockerfile             Imagen Docker
@@ -120,6 +160,8 @@ ffmpeg-auto-transcoder/
 │
 └── docs/                  Documentación adicional (próximamente)
 ```
+
+---
 
 ## Flujo de trabajo
 
@@ -162,9 +204,17 @@ El funcionamiento general del transcodificador es el siguiente:
 Todo el proceso está completamente automatizado. El sistema puede trabajar de forma desatendida durante largos periodos de tiempo procesando nuevas películas conforme aparecen en el directorio de entrada.
 ---
 
-## Organización de directorios
+## Funcionamiento continuo
 
-El proyecto organiza automáticamente los archivos durante el proceso de transcodificación.
+Una vez instalado el servicio mediante systemd, el transcodificador permanece siempre en ejecución.
+
+Cuando detecta una nueva película en el directorio de entrada, inicia automáticamente el proceso de análisis y codificación.
+
+Al finalizar vuelve al modo espera sin necesidad de intervención del usuario.
+
+El monitor puede ejecutarse en cualquier momento para consultar el estado del servicio y de la codificación.
+
+## Organización de directorios
 
 ```text
 DISCO/
@@ -186,6 +236,8 @@ DISCO/
 │
 └── logs/
       Registros de ejecución, progreso y diagnóstico.
+```
+
 ---
 
 ## Tecnologías utilizadas
@@ -199,11 +251,13 @@ DISCO/
 - **Jellyfin** como destino de la biblioteca multimedia.
 - **Docker** (opcional) para facilitar el despliegue.
 
-Esta estructura permite mantener organizada la biblioteca multimedia y facilita la recuperación ante posibles errores durante el proceso.---
+Esta estructura permite mantener organizada la biblioteca multimedia y facilita la recuperación ante posibles errores durante el proceso.
+---
 
 ## Estado del proyecto
 
-Actualmente el proyecto se encuentra en desarrollo activo.
+El proyecto es plenamente funcional y continúa en desarrollo para incorporar nuevas características y optimizaciones.
+
 
 ### Funcionalidades implementadas
 
@@ -216,11 +270,12 @@ Actualmente el proyecto se encuentra en desarrollo activo.
 - ✔ Organización automática de archivos.
 - ✔ Integración con Jellyfin.
 - ✔ Configuración centralizada mediante `config.sh`.
+- ✔ Ejecución permanente mediante systemd.
 
 ### Próximas mejoras
 
 - Documentación técnica.
 - Soporte mediante Docker.
-- Mejoras en la instalación.
+- Instalador automático.
 - Optimización continua del proceso de transcodificación.```
 
