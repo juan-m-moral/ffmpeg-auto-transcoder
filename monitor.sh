@@ -16,8 +16,8 @@ export LC_NUMERIC=C
 # CONFIGURACIÓN
 ###############################################################################
 
-INPUTDIR="$DISCO/entrada"
-LOGDIR="$DISCO/logs"
+INPUTDIR="$ENTRADA"
+LOGDIR="$LOGS"
 
 PROGRESS_FILE="$LOGDIR/ffmpeg.progress"
 EXTRA_FILE="$LOGDIR/ffmpeg.extra"

@@ -1,22 +1,41 @@
 #!/usr/bin/env bash
 
 ###############################################################################
-# GENERAL
+# CONFIGURACIÓN GENERAL
 ###############################################################################
 
-DISCO="/mnt/dd2"
+# Directorio donde se almacenará toda la biblioteca multimedia.
+# Modifique esta ruta según su instalación.
+#
+# Ejemplo:
+# MEDIA_DIR="/mnt/dd2"
+# MEDIA_DIR="/media/raid"
+# MEDIA_DIR="/srv/media"
+
+MEDIA_DIR="/CAMBIAR/ESTA/RUTA"
+
+###############################################################################
+# DIRECTORIOS
+###############################################################################
+
+ENTRADA="$MEDIA_DIR/entrada"
+PROCESADAS="$MEDIA_DIR/procesadas"
+JELLYFIN="$MEDIA_DIR/jellyfin"
+TERMINADAS="$MEDIA_DIR/terminadas"
+ERRORES="$MEDIA_DIR/errores"
+LOGS="$MEDIA_DIR/logs"
 
 ###############################################################################
 # TRANSCODIFICACIÓN
 ###############################################################################
 
-# Tamaño objetivo de una película de TARGET_MIN minutos
+# Tamaño objetivo para una película de TARGET_MIN minutos (GB)
 TARGET_GB=20
 
-# Duración de referencia para el cálculo dinámico del bitrate
+# Duración de referencia para el cálculo dinámico del bitrate (minutos)
 TARGET_MIN=150
 
-# Bitrate mínimo permitido para vídeo 4K
+# Bitrate mínimo permitido para vídeo 4K (bits por segundo)
 MIN_VIDEO_BPS=8000000
 
 ###############################################################################

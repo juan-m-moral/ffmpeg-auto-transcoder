@@ -4,6 +4,18 @@
 # Analizador + reescalador a 4K (Acelerado por NVIDIA NVENC GPU)
 ###############################################################################
 source ./config.sh
+
+###############################################################################
+# COMPROBAR CONFIGURACIÓN
+###############################################################################
+
+if [[ -z "$MEDIA_DIR" || "$MEDIA_DIR" == "/CAMBIAR/ESTA/RUTA" ]]; then
+    echo
+    echo "ERROR: Debe configurar MEDIA_DIR en config.sh"
+    echo
+    exit 1
+fi
+
 source "$(dirname "$0")/tmdb.sh"
 source "$(dirname "$0")/omdb.sh"
 set -Eeuo pipefail
