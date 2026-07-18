@@ -25,6 +25,8 @@ Este proyecto ha sido desarrollado con un enfoque práctico, priorizando la auto
 - Información de GPU (uso, temperatura, VRAM, encoder...).
 - Conservación de audio y subtítulos.
 - Obtención automática de metadatos desde TMDb y OMDb.
+- Acceso web al monitor mediante ttyd.
+- Acceso remoto seguro mediante WireGuard (opcional).
 ---
 
 ## Requisitos
@@ -59,10 +61,11 @@ Es necesario disponer de claves API para:
 
 ## Instalación del servicio
 
-Copiar el servicio:
+Copiar los servicios:
 
 ```bash
 sudo cp procesar.service /etc/systemd/system/
+sudo cp ffmpeg-monitor.service /etc/systemd/system/
 ```
 
 Recargar systemd:
@@ -71,21 +74,25 @@ Recargar systemd:
 sudo systemctl daemon-reload
 ```
 
-Activarlo para que arranque con el sistema:
+Activarlos para que arranque con el sistema:
 
 ```bash
 sudo systemctl enable procesar.service
+sudo systemctl enable ffmpeg-monitor.service
 ```
 
-Iniciarlo:
+Iniciarlos:
 
 ```bash
 sudo systemctl start procesar.service
+sudo systemctl start ffmpeg-monitor.service
 ```
 
 ---
 
-## Administración del servicio
+## Administración de los servicios
+
+### Transcodificador
 
 Consultar estado:
 
@@ -111,19 +118,45 @@ Reiniciar:
 sudo systemctl restart procesar.service
 ```
 
+### Monitor web
+
+Consultar estado:
+
+```bash
+systemctl status ffmpeg-monitor.service
+```
+
+Detener:
+
+```bash
+sudo systemctl stop ffmpeg-monitor.service
+```
+
+Iniciar:
+
+```bash
+sudo systemctl start ffmpeg-monitor.service
+```
+
+Reiniciar:
+
+```bash
+sudo systemctl restart ffmpeg-monitor.service
+```
+
 ---
 
-## Monitor
+## Uso del monitor
 
-El monitor es completamente independiente del servicio.
+### Monitor en consola
 
-Puede abrirse y cerrarse en cualquier momento:
+Puede ejecutarse en cualquier momento para consultar el estado del servicio y de la transcodificación:
 
 ```bash
 ./monitor.sh
 ```
 
-No es necesario iniciarlo al arrancar el servicio. Puede ejecutarse en cualquier momento para consultar el estado del transcodificador.
+No es necesario iniciarlo al arrancar el servicio.
 
 El monitor distingue tres estados:
 
@@ -131,34 +164,50 @@ El monitor distingue tres estados:
 - Esperando nuevas películas.
 - Codificando una película.
 
-## Configuración
+### Monitor web
 
-Toda la configuración del proyecto se encuentra centralizada en el archivo:
+El mismo monitor también puede consultarse desde cualquier navegador de la red local.
+
+Una vez iniciado el servicio:
 
 ```text
-config.sh
+http://IP_DEL_SERVIDOR:9001
 ```
 
----
+Si se utiliza WireGuard, también puede accederse desde el exterior de forma segura sin abrir puertos en el router.
+
+
+## Capturas
+
+### Monitor en consola
+
+Monitor en tiempo real durante una transcodificación.
+
+![Monitor en consola](docs/monitor-consola.png)
+
+### Monitor web
+
+El mismo monitor accesible desde cualquier navegador de la red local o mediante WireGuard.
+
+![Monitor web](docs/monitor-web.png)
 
 
 ## Estructura del proyecto
 
 ```text
-ffmpeg-auto-transcoder/
-│
-├── config.sh              Configuración general
-├── procesar.sh            Motor principal de transcodificación
-├── monitor.sh             Monitor en tiempo real
-├── procesar.service      Servicio systemd
-├── tmdb.sh                Acceso a la API de TMDb
-├── omdb.sh                Acceso a la API de OMDb
-├── Dockerfile             Imagen Docker
-├── docker-compose.yml     Despliegue mediante Docker
-├── README.md              Documentación principal
-├── .gitignore             Exclusiones de Git
-│
-└── docs/                  Documentación adicional (próximamente)
+├── config.sh                 Configuración general
+├── procesar.sh               Motor principal
+├── monitor.sh                Monitor en tiempo real
+├── monitor-web.sh            Monitor web mediante ttyd
+├── ffmpeg-monitor.service    Servicio systemd del monitor
+├── procesar.service          Servicio systemd del transcodificador
+├── tmdb.sh                   Acceso a TMDb
+├── omdb.sh                   Acceso a OMDb
+├── Dockerfile                Imagen Docker
+├── docker-compose.yml        Despliegue Docker
+├── README.md                 Documentación principal
+├── .gitignore                Exclusiones de Git
+└── docs/                     Capturas y documentación
 ```
 
 ---
@@ -250,6 +299,8 @@ DISCO/
 - **OMDb API** como fuente adicional de información.
 - **Jellyfin** como destino de la biblioteca multimedia.
 - **Docker** (opcional) para facilitar el despliegue.
+- **systemd** para la ejecución permanente.
+- **ttyd** para el acceso web al monitor.
 
 Esta estructura permite mantener organizada la biblioteca multimedia y facilita la recuperación ante posibles errores durante el proceso.
 ---
@@ -258,8 +309,15 @@ Esta estructura permite mantener organizada la biblioteca multimedia y facilita 
 
 El proyecto es plenamente funcional y continúa en desarrollo para incorporar nuevas características y optimizaciones.
 
+---
 
-### Funcionalidades implementadas
+## Licencia
+
+Este proyecto se distribuye bajo la licencia **MIT**. Consulte el archivo `LICENSE` para más información.
+
+---
+
+## Funcionalidades implementadas
 
 - ✔ Transcodificación automática mediante FFmpeg.
 - ✔ Aceleración por hardware con NVIDIA NVENC.
@@ -270,9 +328,12 @@ El proyecto es plenamente funcional y continúa en desarrollo para incorporar nu
 - ✔ Organización automática de archivos.
 - ✔ Integración con Jellyfin.
 - ✔ Configuración centralizada mediante `config.sh`.
+- ✔ Monitor web mediante ttyd.
 - ✔ Ejecución permanente mediante systemd.
 
-### Próximas mejoras
+---
+
+## Próximas mejoras
 
 - Documentación técnica.
 - Soporte mediante Docker.
