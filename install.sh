@@ -199,21 +199,34 @@ ask_media_directory() {
                 continue
             }
 
+        else
+
+            echo
+            echo "La biblioteca multimedia ya existe:"
+            echo "  $MEDIA_DIR"
+            echo
+
+            read -rp "¿Desea utilizar esta biblioteca? [S/n]: " RESP
+
+            if [[ "$RESP" =~ ^[Nn]$ ]]; then
+                continue
+            fi
+
         fi
+
+        echo
+        echo "Creando estructura de directorios..."
+        echo
+
+        mkdir -p \
+            "$MEDIA_DIR/entrada" \
+            "$MEDIA_DIR/jellyfin" \
+            "$MEDIA_DIR/logs" \
+            "$MEDIA_DIR/temp"
 
         break
 
     done
-
-    echo
-    echo "Creando estructura de directorios..."
-    echo
-
-    mkdir -p \
-        "$MEDIA_DIR/entrada" \
-        "$MEDIA_DIR/jellyfin" \
-        "$MEDIA_DIR/logs" \
-        "$MEDIA_DIR/temp"
 
 }
 
@@ -299,6 +312,23 @@ generate_config() {
         > "$INSTALL_DIR/config.sh"
 
     rm -f "$INSTALL_DIR/templates/config.sh.template"
+
+}
+
+save_install_info() {
+
+    echo
+    echo "[3/7] Guardando información de la instalación..."
+    echo
+
+    mkdir -p /etc/ffmpeg-auto-transcoder
+
+    cat > /etc/ffmpeg-auto-transcoder/install.conf <<EOF
+INSTALL_DIR="$INSTALL_DIR"
+MEDIA_DIR="$MEDIA_DIR"
+REAL_USER="$REAL_USER"
+VERSION="$VERSION"
+EOF
 
 }
 
@@ -403,6 +433,8 @@ install_dependencies
 copy_project
 
 generate_config
+
+save_install_info
 
 generate_services
 
