@@ -1,6 +1,6 @@
 # FFmpeg Auto Transcoder for Jellyfin
 
-Automatic movie transcoder for Jellyfin using **FFmpeg**, **NVIDIA NVENC**, **TMDb**, **OMDb**, and real-time monitoring.
+Automatic movie transcoder for dedicated Jellyfin servers using FFmpeg, NVIDIA NVENC, TMDb, OMDb, and real-time monitoring.
 
 > ⚠️ **Important**
 >
@@ -16,7 +16,7 @@ Automatic movie transcoder for Jellyfin using **FFmpeg**, **NVIDIA NVENC**, **TM
 
 FFmpeg Auto Transcoder automatically monitors a movie library, transcodes new content using **FFmpeg** with **NVIDIA NVENC**, retrieves metadata from **TMDb** and **OMDb**, organizes movies into a clean directory structure, and keeps running continuously as a Linux system service.
 
-Designed for **Jellyfin** servers, it requires no manual intervention once installed and configured.
+This project is primarily intended for **dedicated Jellyfin servers** running 24/7, where new movies can be automatically processed without user intervention.
 
 ---
 
