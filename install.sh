@@ -67,6 +67,19 @@ detect_package_manager() {
 
 }
 
+check_nvidia() {
+
+    if ! command -v nvidia-smi >/dev/null 2>&1; then
+        echo
+        echo "ERROR: No se ha detectado una GPU NVIDIA."
+        echo
+        echo "FFmpeg Auto Transcoder requiere NVIDIA NVENC."
+        echo
+        exit 1
+    fi
+
+}
+
 check_dependencies() {
 
     local dependencies=(
@@ -246,6 +259,18 @@ show_summary() {
     echo
     echo "Biblioteca : $MEDIA_DIR"
     echo
+
+}
+
+check_ffmpeg_nvenc() {
+
+    if ! ffmpeg -hide_banner -encoders | grep -q "hevc_nvenc"; then
+        echo
+        echo "ERROR: La instalación de FFmpeg no incluye el codificador HEVC NVENC."
+        echo "Instale una versión de FFmpeg con soporte para NVIDIA NVENC."
+        echo
+        exit 1
+    fi
 
 }
 
@@ -436,6 +461,8 @@ detect_user
 
 detect_package_manager
 
+check_nvidia
+
 check_dependencies
 
 ask_install_directory
@@ -453,6 +480,8 @@ if [[ "$RESP" =~ ^[Nn]$ ]]; then
 fi
 
 install_dependencies
+
+check_ffmpeg_nvenc
 
 copy_project
 

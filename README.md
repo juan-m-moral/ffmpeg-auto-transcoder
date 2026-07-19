@@ -1,344 +1,443 @@
 # FFmpeg Auto Transcoder for Jellyfin
 
-Sistema automático de transcodificación de películas mediante FFmpeg y NVIDIA NVENC.
+Automatic movie transcoder for Jellyfin using **FFmpeg**, **NVIDIA NVENC**, **TMDb**, **OMDb**, and real-time monitoring.
 
-![Monitor](docs/monitor-web.png)
+> ⚠️ **Important**
+>
+> This project currently supports **NVIDIA GPUs with NVENC only**.
+>
+> **Intel Quick Sync (QSV)** and **AMD AMF** are **not supported** at this time.
 
-El servicio permanece en ejecución continuamente, detecta nuevas películas automáticamente y las procesa sin intervención del usuario. Incluye un monitor en tiempo real para consultar el estado de la codificación.
-
-El proyecto nace con el objetivo de automatizar por completo el procesamiento de una biblioteca de películas. Analiza cada vídeo, calcula automáticamente el bitrate más adecuado, procesa el contenido a HEVC (H.265), lo reescala a 4K cuando es necesario, conserva la información multimedia original y organiza el resultado para su integración en una biblioteca Jellyfin.
-
-Además, obtiene automáticamente información desde TMDb y OMDb para renombrar las películas y preparar la biblioteca para Jellyfin.
-
-Todo el proceso está pensado para ejecutarse de forma desatendida, incluyendo monitorización en tiempo real, registro de errores y organización automática de los archivos.
-
-Este proyecto ha sido desarrollado con un enfoque práctico, priorizando la automatización, la estabilidad y la facilidad de mantenimiento sobre la complejidad innecesaria.
+![Web Monitor](docs/monitor-web.png)
 
 ---
 
-## Características
+## Overview
 
-- Transcodificación automática mediante FFmpeg.
-- Aceleración por GPU NVIDIA (NVENC).
-- Espera permanente de nuevas películas.
-- Inicio automático mediante systemd.
-- Monitor independiente en tiempo real.
-- Cálculo de ETA y progreso.
-- Información de GPU (uso, temperatura, VRAM, encoder...).
-- Conservación de audio y subtítulos.
-- Obtención automática de metadatos desde TMDb y OMDb.
-- Acceso web al monitor mediante ttyd.
-- Acceso remoto seguro mediante WireGuard (opcional).
----
+FFmpeg Auto Transcoder automatically monitors a movie library, transcodes new content using **FFmpeg** with **NVIDIA NVENC**, retrieves metadata from **TMDb** and **OMDb**, organizes movies into a clean directory structure, and keeps running continuously as a Linux system service.
 
-## Requisitos
-
-Para utilizar este proyecto se necesita:
-
-### 🐧 Sistema operativo
-
-- Linux (desarrollado y probado en Linux Mint).
-
-### 💻 Software
-
-- 🐚 Bash
-- 🎬 FFmpeg con soporte para NVIDIA NVENC
-- 🔍 FFprobe
-- 📦 jq
-- 🌐 curl
-- 🖥️ nvidia-smi
-
-### 🖥️ Hardware
-
-- 🟢 GPU NVIDIA compatible con NVENC.
-
-### 🔑 APIs
-
-Es necesario disponer de claves API para:
-
-- 🎞️ TMDb
-- 🎬 OMDb
+Designed for **Jellyfin** servers, it requires no manual intervention once installed and configured.
 
 ---
 
-## Instalación del servicio
+## Features
 
-Copiar los servicios:
-
-```bash
-sudo cp services/procesar.service.template /etc/systemd/system/procesar.service
-sudo cp services/ffmpeg-monitor.service.template /etc/systemd/system/ffmpeg-monitor.service
-```
-
-Recargar systemd:
-
-```bash
-sudo systemctl daemon-reload
-```
-
-Activarlos para que arranque con el sistema:
-
-```bash
-sudo systemctl enable procesar.service
-sudo systemctl enable ffmpeg-monitor.service
-```
-
-Iniciarlos:
-
-```bash
-sudo systemctl start procesar.service
-sudo systemctl start ffmpeg-monitor.service
-```
+- 🎬 Automatic movie transcoding.
+- ⚡ Hardware-accelerated encoding with NVIDIA NVENC.
+- 📺 Automatic 4K upscaling.
+- 📊 Dynamic bitrate calculation.
+- 🎭 Automatic metadata retrieval from TMDb and OMDb.
+- 📁 Automatic movie organization.
+- 🔄 Continuous background monitoring.
+- 🌐 Real-time web monitor.
+- ⚙️ Automatic installation and uninstallation.
+- 🖥️ Native systemd integration.
+- 🎞️ Optimized for Jellyfin media servers.
 
 ---
 
-## Administración de los servicios
+## Requirements
 
-### Transcodificador
+### Supported Linux distributions
 
-Consultar estado:
+The installer currently supports:
+
+- Ubuntu
+- Debian
+- Fedora
+- Arch Linux
+- openSUSE
+
+### Hardware
+
+- NVIDIA GPU with **NVENC** support (**required**).
+
+> ⚠️ Intel Quick Sync (QSV) and AMD AMF are currently **not supported**.
+
+### Software
+
+The installer automatically installs all required dependencies, including:
+
+- FFmpeg
+- jq
+- curl
+- bc
+- rsync
+- ttyd
+
+No manual dependency installation is required.
+
+---
+
+## Installation
+
+Clone the repository:
 
 ```bash
-systemctl status procesar.service
+git clone https://github.com/YOUR_USERNAME/ffmpeg-auto-transcoder.git
+cd ffmpeg-auto-transcoder
 ```
 
-Detener:
+Run the installer:
 
 ```bash
-sudo systemctl stop procesar.service
+chmod +x install.sh
+sudo ./install.sh
 ```
 
-Iniciar:
+The installer automatically:
 
-```bash
-sudo systemctl start procesar.service
+- Installs all required dependencies.
+- Detects your Linux distribution.
+- Generates the configuration files.
+- Installs the systemd services.
+- Enables and starts the services.
+- Creates the multimedia library structure.
+
+> ⚠️ **Important**
+>
+> Before using the application, edit:
+>
+> ```text
+> /etc/ffmpeg-auto-transcoder/config.sh
+> ```
+>
+> and add your own **TMDb** and **OMDb** API keys.
+>
+> These keys are required for automatic movie identification, metadata retrieval, and library organization.
+
+---
+
+## Required API Keys
+
+Before using the application, edit:
+
+```text
+/etc/ffmpeg-auto-transcoder/config.sh
 ```
 
-Reiniciar:
+and configure your API keys:
 
 ```bash
+TMDB_API_KEY=xxxxxxxxxxxxxxxx
+OMDB_API_KEY=xxxxxxxxxxxxxxxx
+```
+
+Both APIs are **free** and are required to correctly identify and organize your movie library.
+
+You can obtain your API keys here:
+
+- TMDb: https://www.themoviedb.org/settings/api
+- OMDb: https://www.omdbapi.com/apikey.aspx
+
+---
+
+## Service Management
+
+The installer automatically creates and enables two systemd services:
+
+- **procesar.service** — Background transcoding service.
+- **ffmpeg-monitor.service** — Console and web monitoring service.
+
+Useful commands:
+
+```bash
+sudo systemctl status procesar.service
 sudo systemctl restart procesar.service
-```
 
-### Monitor web
-
-Consultar estado:
-
-```bash
-systemctl status ffmpeg-monitor.service
-```
-
-Detener:
-
-```bash
-sudo systemctl stop ffmpeg-monitor.service
-```
-
-Iniciar:
-
-```bash
-sudo systemctl start ffmpeg-monitor.service
-```
-
-Reiniciar:
-
-```bash
+sudo systemctl status ffmpeg-monitor.service
 sudo systemctl restart ffmpeg-monitor.service
 ```
 
 ---
 
-## Uso del monitor
+## Console Monitor
 
-### Monitor en consola
-
-Puede ejecutarse en cualquier momento para consultar el estado del servicio y de la transcodificación:
+Launch the interactive console monitor with:
 
 ```bash
 ./monitor.sh
 ```
 
-No es necesario iniciarlo al arrancar el servicio.
+The monitor displays real-time information, including:
 
-El monitor distingue tres estados:
-
-- Servicio detenido.
-- Esperando nuevas películas.
-- Codificando una película.
-
-### Monitor web
-
-El mismo monitor también puede consultarse desde cualquier navegador de la red local.
-
-Una vez iniciado el servicio:
-
-```text
-http://IP_DEL_SERVIDOR:9001
-```
-
-Si se utiliza WireGuard, también puede accederse desde el exterior de forma segura sin abrir puertos en el router.
-
-
-## Capturas
-
-### Monitor en consola
-
-Monitor en tiempo real durante una transcodificación.
-
-![Monitor en consola](docs/monitor-consola.png)
-
-### Monitor web
-
-El mismo monitor accesible desde cualquier navegador de la red local o mediante WireGuard.
-
-![Monitor web](docs/monitor-web.png)
-
-
-## Estructura del proyecto
-
-```text
-├── config.sh                 Configuración general
-├── procesar.sh               Motor principal
-├── monitor.sh                Monitor en tiempo real
-├── monitor-web.sh            Monitor web mediante ttyd
-├── ffmpeg-monitor.service    Servicio systemd del monitor
-├── procesar.service          Servicio systemd del transcodificador
-├── tmdb.sh                   Acceso a TMDb
-├── omdb.sh                   Acceso a OMDb
-├── Dockerfile                Imagen Docker
-├── docker-compose.yml        Despliegue Docker
-├── README.md                 Documentación principal
-├── .gitignore                Exclusiones de Git
-└── docs/                     Capturas y documentación
-```
+- Current transcoding status.
+- Queue status.
+- FFmpeg activity.
+- Hardware usage.
+- Process statistics.
 
 ---
 
-## Flujo de trabajo
+## Web Monitor
 
-El funcionamiento general del transcodificador es el siguiente:
+The installer automatically configures a web-based monitor using **ttyd**.
+
+By default, it is available at:
 
 ```text
-           Nueva película
-                  │
-                  ▼
-     Análisis con FFprobe
-                  │
-                  ▼
-    Obtención de metadatos
-       (TMDb / OMDb)
-                  │
-                  ▼
- Cálculo dinámico del bitrate
-                  │
-                  ▼
- Reescalado y codificación
-     FFmpeg + NVIDIA NVENC
-                  │
-                  ▼
- Monitorización en tiempo real
-                  │
-                  ▼
- Verificación del resultado
-                  │
-                  ▼
- Renombrado automático
-                  │
-                  ▼
- Copia a la biblioteca Jellyfin
-                  │
-                  ▼
- Organización de archivos
-  (procesadas, errores, logs)
+http://SERVER_IP:9001
 ```
 
-Todo el proceso está completamente automatizado. El sistema puede trabajar de forma desatendida durante largos periodos de tiempo procesando nuevas películas conforme aparecen en el directorio de entrada.
+Example:
+
+```
+http://192.168.1.100:9001
+```
+
+The web interface displays the same real-time information as the console monitor and can be accessed from any web browser.
+
 ---
 
-## Funcionamiento continuo
+## Screenshots
 
-Una vez instalado el servicio mediante systemd, el transcodificador permanece siempre en ejecución.
+### Console Monitor
 
-Cuando detecta una nueva película en el directorio de entrada, inicia automáticamente el proceso de análisis y codificación.
+![Console Monitor](docs/monitor-consola.png)
 
-Al finalizar vuelve al modo espera sin necesidad de intervención del usuario.
+### Web Monitor
 
-El monitor puede ejecutarse en cualquier momento para consultar el estado del servicio y de la codificación.
+![Web Monitor](docs/monitor-web.png)
 
-## Organización de directorios
+---
+
+## Project Structure
+
+```text
+├── docs/
+│   ├── monitor-consola.png
+│   └── monitor-web.png
+│
+├── lib/
+│   ├── omdb.sh
+│   └── tmdb.sh
+│
+├── templates/
+│   ├── config.sh.template
+│   ├── procesar.service.template
+│   └── ffmpeg-monitor.service.template
+│
+├── install.sh
+├── uninstall.sh
+├── procesar.sh
+├── monitor.sh
+├── monitor-web.sh
+├── Dockerfile
+├── docker-compose.yml
+├── LICENSE
+└── README.md
+```
+
+Configuration files are generated automatically during installation and stored in:
+
+```text
+/etc/ffmpeg-auto-transcoder/
+```
+
+Systemd service files are generated automatically under:
+
+```text
+/etc/systemd/system/
+```
+---
+
+## Workflow
+
+The transcoding workflow is fully automated.
+
+```text
+New movie
+     │
+     ▼
+Media library (input)
+     │
+     ▼
+Metadata lookup (TMDb / OMDb)
+     │
+     ▼
+Automatic transcoding (FFmpeg + NVIDIA NVENC)
+     │
+     ▼
+Automatic organization
+     │
+     ▼
+Jellyfin library
+```
+
+Once a movie is copied into the **input** directory, the service automatically:
+
+1. Detects the new file.
+2. Retrieves movie metadata from TMDb and OMDb.
+3. Calculates the optimal bitrate.
+4. Transcodes the video using NVIDIA NVENC.
+5. Organizes the output into the Jellyfin library.
+6. Archives the original file.
+7. Cleans up temporary files.
+
+No manual intervention is required.
+
+---
+
+## Directory Structure
+
+The installer creates the following directory layout:
 
 ```text
 MEDIA_DIR/
-│
 ├── entrada/
-│     Películas pendientes de procesar.
-│
-├── procesadas/
-│     Resultado temporal de la transcodificación.
-│
-├── jellyfin/
-│     Biblioteca lista para Jellyfin.
-│
-├── terminadas/
-│     Archivos originales ya procesados.
-│
 ├── errores/
-│     Archivos que no pudieron procesarse.
-│
-└── logs/
-      Registros de ejecución, progreso y diagnóstico.
+├── jellyfin/
+├── logs/
+├── procesadas/
+├── temp/
+└── terminadas/
 ```
 
----
+### entrada
 
-## Tecnologías utilizadas
+Input directory monitored by the transcoding service.
 
-- **Bash** como lenguaje principal.
-- **FFmpeg** para el procesamiento de vídeo.
-- **FFprobe** para el análisis multimedia.
-- **NVIDIA NVENC** para la aceleración por hardware.
-- **TMDb API** para la obtención de metadatos.
-- **OMDb API** como fuente adicional de información.
-- **Jellyfin** como destino de la biblioteca multimedia.
-- **Docker** (opcional) para facilitar el despliegue.
-- **systemd** para la ejecución permanente.
-- **ttyd** para el acceso web al monitor.
-
-Esta estructura permite mantener organizada la biblioteca multimedia y facilita la recuperación ante posibles errores durante el proceso.
----
-
-## Estado del proyecto
-
-El proyecto es plenamente funcional y continúa en desarrollo para incorporar nuevas características y optimizaciones.
+Simply copy your movie files here.
 
 ---
 
-## Licencia
+### jellyfin
 
-Este proyecto se distribuye bajo la licencia **MIT**. Consulte el archivo `LICENSE` para más información.
+Destination library.
 
----
+Movies are automatically organized using the following structure:
 
-## Funcionalidades implementadas
+```text
+Movie Title (Year)/
+└── Movie Title (Year).mkv
+```
 
-- ✔ Transcodificación automática mediante FFmpeg.
-- ✔ Aceleración por hardware con NVIDIA NVENC.
-- ✔ Cálculo dinámico del bitrate.
-- ✔ Reescalado automático a 4K.
-- ✔ Monitorización en tiempo real.
-- ✔ Obtención de metadatos mediante TMDb y OMDb.
-- ✔ Organización automática de archivos.
-- ✔ Integración con Jellyfin.
-- ✔ Configuración centralizada mediante `config.sh`.
-- ✔ Monitor web mediante ttyd.
-- ✔ Ejecución permanente mediante systemd.
+This layout is fully compatible with Jellyfin.
 
 ---
 
-## Próximas mejoras
+### procesadas
 
-- Documentación técnica.
-- Soporte mediante Docker.
-- Instalador automático.
-- Optimización continua del proceso de transcodificación.```
+Stores the original movie files after they have been successfully transcoded.
 
+---
+
+### terminadas
+
+Stores movies that have been completely processed.
+
+---
+
+### errores
+
+Contains files that could not be processed successfully.
+
+This allows failed jobs to be reviewed and reprocessed if necessary.
+
+---
+
+### logs
+
+Stores execution logs and diagnostic information.
+
+---
+
+### temp
+
+Temporary working directory used during transcoding.
+
+Files are automatically removed automatically when processing completes.
+
+---
+
+## Continuous Operation
+
+The application runs continuously as a background systemd service.
+
+Whenever a new movie is detected in the input directory, it is automatically processed without requiring any user interaction.
+
+If the server is restarted, all services are automatically restored by systemd.
+
+---
+
+## Built With
+
+- FFmpeg
+- NVIDIA NVENC
+- Bash
+- systemd
+- Jellyfin
+- TMDb API
+- OMDb API
+- ttyd
+- rsync
+- jq
+- curl
+
+---
+
+## Project Status
+
+The project is fully functional and includes automatic installation and uninstallation for Linux.
+
+Development is ongoing, with a focus on new features, broader hardware compatibility, and continuous performance improvements.
+
+---
+
+## License
+
+This project is distributed under the **MIT License**.
+
+See the `LICENSE` file for more information.
+
+---
+
+## Implemented Features
+
+- ✔ Automatic movie transcoding using FFmpeg.
+- ✔ NVIDIA NVENC hardware acceleration.
+- ✔ Dynamic bitrate calculation.
+- ✔ Automatic 4K upscaling.
+- ✔ Automatic metadata retrieval from TMDb and OMDb.
+- ✔ Automatic movie organization.
+- ✔ Continuous background monitoring.
+- ✔ Real-time web monitor.
+- ✔ Automatic Linux installer.
+- ✔ Automatic Linux uninstaller.
+- ✔ Centralized configuration.
+- ✔ Native systemd integration.
+- ✔ Jellyfin integration.
+
+---
+
+## Roadmap
+
+Planned improvements include:
+
+- Full Docker support.
+- Support for additional hardware accelerators (Intel Quick Sync and AMD AMF).
+- Continuous optimization of the transcoding process.
+- Additional metadata providers.
+- Improved monitoring and reporting.
+
+---
+
+## Contributing
+
+Contributions, suggestions, and bug reports are always welcome.
+
+If you have an idea to improve the project, feel free to open an issue or submit a pull request.
+
+---
+
+## Acknowledgements
+
+This project would not be possible without these outstanding open-source projects:
+
+- FFmpeg
+- Jellyfin
+- TMDb
+- OMDb
+- ttyd
+
+Thank you to all their developers and contributors.
