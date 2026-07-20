@@ -516,7 +516,7 @@ draw_service_stopped()
     echo
     echo "Start it with:"
     echo
-    echo "sudo systemctl start procesar.service"
+    echo "sudo systemctl start transcoder.service"
     echo
 }
 
@@ -526,7 +526,7 @@ draw_service_stopped()
 
 while true
 do
-    if ! systemctl is-active --quiet procesar.service; then
+    if ! systemctl is-active --quiet transcoder.service; then
         draw_service_stopped
         sleep "$REFRESH"
         continue

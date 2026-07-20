@@ -413,8 +413,6 @@ for ATTEMPT in 1 2; do
 
         if [[ -f "$PROGRESS_FILE" ]]; then
 
-        if [[ -f "$PROGRESS_FILE" ]]; then
-
             encoder_usage=$(
                 nvidia-smi \
                     --query-gpu=utilization.encoder \

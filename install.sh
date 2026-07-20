@@ -318,7 +318,7 @@ copy_project() {
         ./ "$INSTALL_DIR"
 
     chmod +x \
-        "$INSTALL_DIR/procesar.sh" \
+        "$INSTALL_DIR/transcoder.sh" \
         "$INSTALL_DIR/monitor.sh" \
         "$INSTALL_DIR/monitor-web.sh" \
         "$INSTALL_DIR/lib/tmdb.sh" \
@@ -371,8 +371,8 @@ generate_services() {
     sed \
         -e "s|__USER__|$REAL_USER|g" \
         -e "s|__INSTALL_DIR__|$INSTALL_DIR|g" \
-        "$INSTALL_DIR/templates/procesar.service.template" \
-        > /etc/systemd/system/procesar.service
+        "$INSTALL_DIR/templates/transcoder.service.template" \
+        > /etc/systemd/system/transcoder.service
 
     sed \
         -e "s|__USER__|$REAL_USER|g" \
@@ -390,7 +390,7 @@ install_services() {
 
     systemctl daemon-reload
 
-    systemctl enable procesar.service
+    systemctl enable transcoder.service
     systemctl enable ffmpeg-monitor.service
 
 }
@@ -401,7 +401,7 @@ start_services() {
     echo "[7/7] Starting services..."
     echo
 
-    systemctl restart procesar.service
+    systemctl restart transcoder.service
     systemctl restart ffmpeg-monitor.service
 
 }
@@ -424,7 +424,7 @@ echo
 
 echo "Service status:"
 echo
-echo "  sudo systemctl status procesar.service"
+echo "  sudo systemctl status transcoder.service"
 echo
 
 echo "Web monitor:"
