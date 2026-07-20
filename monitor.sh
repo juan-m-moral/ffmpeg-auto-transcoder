@@ -451,8 +451,9 @@ draw_queue()
     local file
     local total
     local shown=0
-    local current_title="$TITLE"
-    local current_year="$YEAR"
+
+    local current_title="${TITLE:-}"
+    local current_year="${YEAR:-}"
 
     mapfile -t files < <(
         find "$INCOMING" -maxdepth 1 -type f | sort
@@ -469,20 +470,21 @@ draw_queue()
 
         normalize_filename "$file"
 
-        ((shown++))
+        ((++shown))
 
-        if [[ -n "$YEAR" ]]; then
+        if [[ -n "${YEAR:-}" ]]; then
             printf "%d. %s (%s)\n" \
                 "$shown" \
-                "$TITLE" \
+                "${TITLE:-Unknown}" \
                 "$YEAR"
         else
             printf "%d. %s\n" \
                 "$shown" \
-                "$TITLE"
+                "${TITLE:-Unknown}"
         fi
 
         (( shown == 3 )) && break
+
     done
 
     if (( total > 3 )); then
