@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-tmdb_imdb_id() {
-
+tmdb_imdb_id()
+{
     local TMDB_ID="$1"
 
     curl -s \
@@ -9,34 +9,34 @@ tmdb_imdb_id() {
 }
 
 ###############################################################################
-# NORMALIZAR NOMBRE
+# NORMALIZE FILENAME
 ###############################################################################
 
-normalizar_nombre()
+normalize_filename()
 {
     local FILE="$1"
 
     TITLE=$(basename "$FILE")
     TITLE="${TITLE%.*}"
 
-    # Extraer año si existe
+    # Extract year if present
     YEAR=$(printf '%s\n' "$TITLE" |
         grep -oE '\((18|19|20)[0-9]{2}\)' |
         tr -d '()')
 
-    # Eliminar únicamente el año entre paréntesis
+    # Remove only the year enclosed in parentheses
     TITLE=$(printf '%s\n' "$TITLE" |
         sed -E 's/\((18|19|20)[0-9]{2}\)//g')
 
-    # Eliminar etiquetas entre corchetes
+    # Remove tags enclosed in square brackets
     TITLE=$(printf '%s\n' "$TITLE" |
         sed -E 's/\[[^]]+\]//g')
 
-    # Sustituir puntos por espacios
+    # Replace dots with spaces
     TITLE=$(printf '%s\n' "$TITLE" |
         tr '.' ' ')
 
-    # Eliminar etiquetas típicas de ripeos
+    # Remove common release tags
     TITLE=$(printf '%s\n' "$TITLE" |
         awk '
         {
@@ -73,24 +73,24 @@ normalizar_nombre()
             print
         }')
 
-    # Limpiar espacios
+    # Normalize whitespace
     TITLE=$(printf '%s\n' "$TITLE" |
         sed 's/[[:space:]][[:space:]]*/ /g' |
         sed 's/^ *//;s/ *$//')
 }
 
 ###############################################################################
-# BUSCAR EN TMDB
+# SEARCH TMDB
 ###############################################################################
 
 tmdb_search()
 {
     local FILE="$1"
 
-    normalizar_nombre "$FILE"
+    normalize_filename "$FILE"
 
-echo "TMDb -> Título : $TITLE" >&2
-echo "TMDb -> Año    : ${YEAR:-N/D}" >&2
+    echo "TMDb -> Title : $TITLE" >&2
+    echo "TMDb -> Year  : ${YEAR:-N/A}" >&2
 
     if [[ -n "$YEAR" ]]
     then
@@ -110,5 +110,3 @@ echo "TMDb -> Año    : ${YEAR:-N/D}" >&2
             "https://api.themoviedb.org/3/search/movie"
     fi
 }
-
-

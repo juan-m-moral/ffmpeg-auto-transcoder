@@ -2,7 +2,8 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-source /etc/ffmpeg-auto-transcoder/config.sh
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/tmdb.sh"
 
 ###############################################################################
 # MONITOR
@@ -363,48 +364,44 @@ draw_screen()
 
     echo -e "${BLUE}${BOLD}"
     echo "══════════════════════════════════════════════════════════════════════════════"
-    echo "                           MONITOR"
+    echo "                   FFmpeg Auto Transcoder"
     echo "══════════════════════════════════════════════════════════════════════════════"
     echo -e "${RESET}"
 
-    echo
-
-    printf "%-18s %s\n" "File:" "$CURRENT_FILE"
-    printf "%-18s %s\n" "Title:" "$TITLE"
-    printf "%-18s %s\n" "Duration:" "$(seconds_to_hms "$RAW_DUR")"
+    printf "%-12s %s\n" "Title:" "$TITLE"
+    printf "%-12s %s\n" "File:" "$CURRENT_FILE"
 
     echo
     echo "$LINE"
 
     echo
-    echo -e "${BOLD}PROGRESS${RESET}"
+    echo -e "${BOLD}NOW PROCESSING${RESET}"
     echo
 
-    printf "%-18s %s / %s\n" \
+    printf "%-12s [%b%s%b] %.2f %%\n" \
+        "Progress:" \
+        "$BAR_COLOR" \
+        "$bar" \
+        "$RESET" \
+        "$PERCENT"
+
+    printf "%-12s %s / %s\n" \
         "Time:" \
         "$(seconds_to_hms "$PROCESSED_SECONDS")" \
         "$(seconds_to_hms "$RAW_DUR")"
 
-    printf "%-18s %.2f %%\n" \
-        "Progress:" \
-        "$PERCENT"
-
-    printf "%-18s [%b%s%b]\n" \
-        "Bar:" \
-        "$BAR_COLOR" \
-        "$bar" \
-        "$RESET"
+    printf "%-12s %s\n" "ETA:" "$(seconds_to_hms "$ETA")"
+    printf "%-12s %s\n" "FPS:" "$FPS"
+    printf "%-12s %s\n" "Speed:" "$SPEED"
 
     echo
     echo "$LINE"
 
     echo
-    echo -e "${BOLD}PERFORMANCE${RESET}"
+    echo -e "${BOLD}QUEUE${RESET}"
     echo
 
-    printf "%-18s %s\n" "FPS:" "$FPS"
-    printf "%-18s %s\n" "Speed:" "$SPEED"
-    printf "%-18s %s\n" "Q:" "$CURRENT_Q"
+    draw_queue
 
     echo
     echo "$LINE"
@@ -413,67 +410,88 @@ draw_screen()
     echo -e "${BOLD}GPU${RESET}"
     echo
 
-    printf "%-18s %s\n" "Model:" "$GPU_NAME"
-    printf "%-18s %s %%\n" "GPU:" "$GPU_USAGE"
-    printf "%-18s %s %%\n" "Encoder:" "$GPU_ENCODER"
-    printf "%-18s %s %%\n" "Decoder:" "$GPU_DECODER"
+    printf "%-12s %s\n" "Model:" "$GPU_NAME"
+    printf "%-12s %s%%   ENC %s%%   DEC %s%%\n" \
+        "Usage:" \
+        "$GPU_USAGE" \
+        "$GPU_ENCODER" \
+        "$GPU_DECODER"
 
-    printf "%-18s %s / %s MB\n" \
+    printf "%-12s %s / %s MB\n" \
         "VRAM:" \
         "$GPU_MEM_USED" \
         "$GPU_MEM_TOTAL"
 
-    printf "%-18s %b%s ºC%b\n" \
-        "Temperature:" \
+    printf "%-12s %b%s ºC%b   %s W\n" \
+        "Temp:" \
         "$TEMP_COLOR" \
         "$GPU_TEMP" \
-        "$RESET"
-
-    printf "%-18s %s W\n" \
-        "Power:" \
+        "$RESET" \
         "$GPU_POWER"
 
     echo
     echo "$LINE"
 
     echo
-    echo -e "${BOLD}TIMING${RESET}"
-    echo
-
-    printf "%-18s %s\n" \
-        "Elapsed:" \
-        "$ELAPSED_HMS"
-
-    printf "%-18s %s\n" \
-        "Remaining:" \
-        "$(seconds_to_hms "$REMAINING")"
-
-    printf "%-18s %s\n" \
-        "ETA:" \
-        "$(seconds_to_hms "$ETA")"
-
-    printf "%-18s %s\n" \
-        "Finish:" \
-        "$FINISH_TIME"
-
-    echo
-    echo "$LINE"
-
-    echo
-    echo -e "${BOLD}STATUS${RESET}"
-    echo
-
-    printf "%-18s %b●%b %s\n" \
+    printf "%-12s %b●%b %s\n" \
         "Status:" \
         "$GREEN" \
         "$RESET" \
         "$STATUS_TEXT"
 
-    printf "%-18s %s\n" \
-        "PID:" \
-        "$PID"
+    printf "%-12s %s\n" "Finish:" "$FINISH_TIME"
+    printf "%-12s %s\n" "PID:" "$PID"
 
     echo
+}
+
+draw_queue()
+{
+    local files
+    local file
+    local total
+    local shown=0
+    local current_title="$TITLE"
+    local current_year="$YEAR"
+
+    mapfile -t files < <(
+        find "$INCOMING" -maxdepth 1 -type f | sort
+    )
+
+    total=${#files[@]}
+
+    if (( total == 0 )); then
+        echo "No pending movies."
+        return
+    fi
+
+    for file in "${files[@]}"; do
+
+        normalize_filename "$file"
+
+        ((shown++))
+
+        if [[ -n "$YEAR" ]]; then
+            printf "%d. %s (%s)\n" \
+                "$shown" \
+                "$TITLE" \
+                "$YEAR"
+        else
+            printf "%d. %s\n" \
+                "$shown" \
+                "$TITLE"
+        fi
+
+        (( shown == 3 )) && break
+    done
+
+    if (( total > 3 )); then
+        echo
+        echo "...and $((total-3)) more"
+    fi
+
+    TITLE="$current_title"
+    YEAR="$current_year"
 }
 
 ###############################################################################
