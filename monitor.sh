@@ -11,6 +11,10 @@ source "$SCRIPT_DIR/lib/tmdb.sh"
 
 set -Eeuo pipefail
 
+trap 'tput cnorm' EXIT
+
+trap 'echo "ERROR: line $LINENO: $BASH_COMMAND"' ERR
+
 export LC_NUMERIC=C
 
 ###############################################################################
@@ -356,7 +360,7 @@ read_extra()
 
 draw_screen()
 {
-    clear
+    printf '\033[H'
 
     local bar
 
@@ -543,6 +547,8 @@ draw_service_stopped()
 ###############################################################################
 # MAIN LOOP
 ###############################################################################
+
+tput civis
 
 while true
 do
