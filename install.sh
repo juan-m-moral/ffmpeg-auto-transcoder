@@ -2,7 +2,7 @@
 
 ###############################################################################
 # FFmpeg Auto Transcoder
-# Instalador
+# Installer
 ###############################################################################
 
 set -e
@@ -20,16 +20,16 @@ MEDIA_DIR=""
 REAL_USER=""
 
 ###############################################################################
-# FUNCIONES
+# FUNCTIONS
 ###############################################################################
 
 check_root() {
 
     if [[ $EUID -ne 0 ]]; then
         echo
-        echo "Este instalador debe ejecutarse con sudo."
+        echo "This installer must be run with sudo."
         echo
-        echo "Ejecute:"
+        echo "Run:"
         echo
         echo "sudo ./install.sh"
         echo
@@ -43,7 +43,6 @@ detect_user() {
     REAL_USER="${SUDO_USER:-$(logname)}"
 
 }
-
 
 detect_package_manager() {
 
@@ -61,7 +60,7 @@ detect_package_manager() {
 
     else
         echo
-        echo "No se ha encontrado un gestor de paquetes compatible."
+        echo "No supported package manager found."
         exit 1
     fi
 
@@ -71,9 +70,9 @@ check_nvidia() {
 
     if ! command -v nvidia-smi >/dev/null 2>&1; then
         echo
-        echo "ERROR: No se ha detectado una GPU NVIDIA."
+        echo "ERROR: No NVIDIA GPU detected."
         echo
-        echo "FFmpeg Auto Transcoder requiere NVIDIA NVENC."
+        echo "FFmpeg Auto Transcoder requires NVIDIA NVENC."
         echo
         exit 1
     fi
@@ -90,7 +89,7 @@ check_dependencies() {
 
         if ! command -v "$program" >/dev/null 2>&1; then
             echo
-            echo "ERROR: $program no está instalado."
+            echo "ERROR: $program is not installed."
             echo
             exit 1
         fi
@@ -125,7 +124,7 @@ install_package() {
 
     if ! command -v "$PACKAGE" >/dev/null 2>&1; then
         echo
-        echo "ERROR: No se ha podido instalar '$PACKAGE'."
+        echo "ERROR: Failed to install '$PACKAGE'."
         exit 1
     fi
 
@@ -134,7 +133,7 @@ install_package() {
 install_dependencies() {
 
     echo
-    echo "[1/7] Instalando dependencias..."
+    echo "[1/7] Installing dependencies..."
     echo
 
     local REQUIRED=(
@@ -153,7 +152,7 @@ install_dependencies() {
             continue
         fi
 
-        echo "Instalando $PACKAGE..."
+        echo "Installing $PACKAGE..."
 
         install_package "$PACKAGE"
 
@@ -166,7 +165,7 @@ ask_install_directory() {
     while true; do
 
         echo
-        read -rp "Directorio de instalación [/opt/ffmpeg-auto-transcoder]: " INSTALL_DIR
+        read -rp "Installation directory [/opt/ffmpeg-auto-transcoder]: " INSTALL_DIR
 
         if [[ -z "$INSTALL_DIR" ]]; then
             INSTALL_DIR="/opt/ffmpeg-auto-transcoder"
@@ -183,66 +182,66 @@ ask_media_directory() {
     while true; do
 
         echo
-        echo "Ejemplo: /mnt/dd2"
+        echo "Example: /mnt/dd2"
         echo
 
-        read -rp "Ruta de la biblioteca multimedia: " MEDIA_DIR
+        read -rp "Media library path: " MEDIA_DIR
 
         if [[ -z "$MEDIA_DIR" ]]; then
             echo
-            echo "Debe indicar una ruta."
+            echo "Please enter a valid path."
             continue
         fi
 
         if [[ ! -d "$MEDIA_DIR" ]]; then
 
             echo
-            echo "La carpeta no existe."
+            echo "Directory does not exist."
             echo
 
-            read -rp "¿Desea crearla? [S/n]: " RESP
+            read -rp "Create it? [Y/n]: " REPLY
 
-            if [[ "$RESP" =~ ^[Nn]$ ]]; then
+            if [[ "$REPLY" =~ ^[Nn]$ ]]; then
                 continue
             fi
 
             mkdir -p "$MEDIA_DIR" || {
                 echo
-                echo "No se ha podido crear la carpeta."
+                echo "Failed to create the directory."
                 continue
             }
 
         else
 
             echo
-            echo "La biblioteca multimedia ya existe:"
+            echo "Media library found:"
             echo "  $MEDIA_DIR"
             echo
 
-            read -rp "¿Desea utilizar esta biblioteca? [S/n]: " RESP
+            read -rp "Use this media library? [Y/n]: " REPLY
 
-            if [[ "$RESP" =~ ^[Nn]$ ]]; then
+            if [[ "$REPLY" =~ ^[Nn]$ ]]; then
                 continue
             fi
 
         fi
 
         echo
-        echo "Creando estructura de directorios..."
+        echo "Creating directory structure..."
         echo
 
-mkdir -p \
-    "$MEDIA_DIR/incoming" \
-    "$MEDIA_DIR/processing" \
-    "$MEDIA_DIR/library" \
-    "$MEDIA_DIR/completed" \
-    "$MEDIA_DIR/failed" \
-    "$MEDIA_DIR/logs" \
-    "$MEDIA_DIR/temp"
+        mkdir -p \
+            "$MEDIA_DIR/incoming" \
+            "$MEDIA_DIR/processing" \
+            "$MEDIA_DIR/library" \
+            "$MEDIA_DIR/completed" \
+            "$MEDIA_DIR/failed" \
+            "$MEDIA_DIR/logs" \
+            "$MEDIA_DIR/temp"
 
-break
+        break
 
-done
+    done
 
 }
 
@@ -254,13 +253,13 @@ show_summary() {
     echo " FFmpeg Auto Transcoder Installer"
     echo "==============================================="
     echo
-    echo "Versión : $VERSION"
+    echo "Version      : $VERSION"
     echo
-    echo "Usuario : $REAL_USER"
+    echo "User         : $REAL_USER"
     echo
-    echo "Instalación : $INSTALL_DIR"
+    echo "Installation : $INSTALL_DIR"
     echo
-    echo "Biblioteca : $MEDIA_DIR"
+    echo "Media library: $MEDIA_DIR"
     echo
 
 }
@@ -269,8 +268,8 @@ check_ffmpeg_nvenc() {
 
     if ! ffmpeg -hide_banner -encoders | grep -q "hevc_nvenc"; then
         echo
-        echo "ERROR: La instalación de FFmpeg no incluye el codificador HEVC NVENC."
-        echo "Instale una versión de FFmpeg con soporte para NVIDIA NVENC."
+        echo "ERROR: Your FFmpeg installation does not include the HEVC NVENC encoder."
+        echo "Please install a version of FFmpeg with NVIDIA NVENC support."
         echo
         exit 1
     fi
@@ -280,19 +279,19 @@ check_ffmpeg_nvenc() {
 copy_project() {
 
     echo
-    echo "[2/7] Copiando archivos..."
+    echo "[2/7] Copying project files..."
     echo
 
     if [[ -d "$INSTALL_DIR" ]]; then
 
         echo
-        echo "El directorio ya existe."
+        echo "The installation directory already exists."
 
-        read -rp "¿Sobrescribir? [s/N]: " RESP
+        read -rp "Overwrite it? [y/N]: " REPLY
 
-        if [[ "$RESP" =~ ^[Nn]$ || -z "$RESP" ]]; then
+        if [[ "$REPLY" =~ ^[Nn]$ || -z "$REPLY" ]]; then
             echo
-            echo "Instalación cancelada."
+            echo "Installation cancelled."
             exit 0
         fi
 
@@ -302,36 +301,37 @@ copy_project() {
 
     if ! command -v rsync >/dev/null 2>&1; then
         echo
-        echo "ERROR: rsync no está instalado."
+        echo "ERROR: rsync is not installed."
         echo
-        echo "Instálelo e inténtelo de nuevo."
+        echo "Please install it and try again."
         exit 1
     fi
 
     mkdir -p "$INSTALL_DIR"
 
     rsync -a \
-    --exclude=".git" \
-    --exclude=".github" \
-    --exclude=".gitignore" \
-    --exclude="*.bak" \
-    --exclude="install.sh" \
-    ./ "$INSTALL_DIR"
+        --exclude=".git" \
+        --exclude=".github" \
+        --exclude=".gitignore" \
+        --exclude="*.bak" \
+        --exclude="install.sh" \
+        ./ "$INSTALL_DIR"
 
-chmod +x \
-    "$INSTALL_DIR/procesar.sh" \
-    "$INSTALL_DIR/monitor.sh" \
-    "$INSTALL_DIR/monitor-web.sh" \
-    "$INSTALL_DIR/lib/tmdb.sh" \
-    "$INSTALL_DIR/lib/omdb.sh"
+    chmod +x \
+        "$INSTALL_DIR/procesar.sh" \
+        "$INSTALL_DIR/monitor.sh" \
+        "$INSTALL_DIR/monitor-web.sh" \
+        "$INSTALL_DIR/lib/tmdb.sh" \
+        "$INSTALL_DIR/lib/omdb.sh"
 
-chown -R "$REAL_USER":"$REAL_USER" "$MEDIA_DIR"
+    chown -R "$REAL_USER":"$REAL_USER" "$MEDIA_DIR"
+
 }
 
 generate_config() {
 
     echo
-    echo "[3/7] Generando configuración..."
+    echo "[3/7] Generating configuration..."
     echo
 
     mkdir -p /etc/ffmpeg-auto-transcoder
@@ -345,11 +345,10 @@ generate_config() {
 
 }
 
-
 save_install_info() {
 
     echo
-    echo "[4/7] Guardando información de la instalación..."
+    echo "[4/7] Saving installation information..."
     echo
 
     mkdir -p /etc/ffmpeg-auto-transcoder
@@ -366,7 +365,7 @@ EOF
 generate_services() {
 
     echo
-    echo "[5/7] Generando servicios..."
+    echo "[5/7] Generating systemd services..."
     echo
 
     sed \
@@ -386,7 +385,7 @@ generate_services() {
 install_services() {
 
     echo
-    echo "[6/7] Instalando servicios..."
+    echo "[6/7] Installing services..."
     echo
 
     systemctl daemon-reload
@@ -399,7 +398,7 @@ install_services() {
 start_services() {
 
     echo
-    echo "[7/7] Iniciando servicios..."
+    echo "[7/7] Starting services..."
     echo
 
     systemctl restart procesar.service
@@ -411,45 +410,45 @@ finish() {
 
 echo
 echo "==============================================="
-echo " Instalación completada correctamente"
+echo " Installation completed successfully"
 echo "==============================================="
 echo
 
-echo "Directorio instalado:"
+echo "Installation directory:"
 echo "  $INSTALL_DIR"
 echo
 
-echo "Biblioteca multimedia:"
+echo "Media library:"
 echo "  $MEDIA_DIR"
 echo
 
-echo "Estado del servicio:"
+echo "Service status:"
 echo
 echo "  sudo systemctl status procesar.service"
 echo
 
-echo "Monitor web:"
+echo "Web monitor:"
 echo
-echo "  http://IP_DEL_SERVIDOR:9001"
+echo "  http://SERVER_IP:9001"
 echo
 
-echo "⚠ IMPORTANTE"
+echo "⚠ IMPORTANT"
 echo
-echo "Edite el siguiente archivo:"
+echo "Edit the following file:"
 echo
 echo "  /etc/ffmpeg-auto-transcoder/config.sh"
 echo
-echo "e introduzca sus claves API:"
+echo "and enter your API keys:"
 echo
 echo "  • TMDB_API_KEY"
 echo "  • OMDB_API_KEY"
 echo
-echo "Sin estas claves el programa no podrá"
-echo "identificar ni organizar correctamente"
-echo "las películas."
+echo "Without these keys, the application"
+echo "will not be able to identify and"
+echo "organize your movies correctly."
 echo
 
-echo "Disfruta 😊"
+echo "Enjoy! 😊"
 echo
 
 }
@@ -474,11 +473,11 @@ ask_media_directory
 
 show_summary
 
-read -rp "¿Continuar con la instalación? [S/n]: " RESP
+read -rp "Continue with the installation? [Y/n]: " REPLY
 
-if [[ "$RESP" =~ ^[Nn]$ ]]; then
+if [[ "$REPLY" =~ ^[Nn]$ ]]; then
     echo
-    echo "Instalación cancelada."
+    echo "Installation cancelled."
     exit 0
 fi
 

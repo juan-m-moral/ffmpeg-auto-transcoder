@@ -13,7 +13,7 @@ set -Eeuo pipefail
 export LC_NUMERIC=C
 
 ###############################################################################
-# CONFIGURACIÓN
+# CONFIGURATION
 ###############################################################################
 
 PROGRESS_FILE="$LOGS/ffmpeg.progress"
@@ -21,9 +21,8 @@ EXTRA_FILE="$LOGS/ffmpeg.extra"
 
 REFRESH=2
 
-
 ###############################################################################
-# COLORES
+# COLORS
 ###############################################################################
 
 RESET="\e[0m"
@@ -38,29 +37,29 @@ MAGENTA="\e[35m"
 CYAN="\e[36m"
 GRAY="\e[90m"
 
-LINEA="────────────────────────────────────────────────────────────────────────────"
+LINE="────────────────────────────────────────────────────────────────────────────"
 
 ###############################################################################
-# SEGUNDOS → HH:MM:SS
+# SECONDS → HH:MM:SS
 ###############################################################################
 
-segundos_hms()
+seconds_to_hms()
 {
-    local s=${1:-0}
+    local seconds=${1:-0}
 
-    (( s < 0 )) && s=0
+    (( seconds < 0 )) && seconds=0
 
     printf "%02d:%02d:%02d" \
-        $((s/3600)) \
-        $(((s%3600)/60)) \
-        $((s%60))
+        $((seconds/3600)) \
+        $(((seconds%3600)/60)) \
+        $((seconds%60))
 }
 
 ###############################################################################
-# TIEMPO TRANSCURRIDO
+# ELAPSED TIME
 ###############################################################################
 
-tiempo_transcurrido()
+calculate_elapsed_time()
 {
     if (( START_EPOCH == 0 ))
     then
@@ -71,24 +70,24 @@ tiempo_transcurrido()
 
     (( ELAPSED < 0 )) && ELAPSED=0
 
-    ELAPSED_HMS=$(segundos_hms "$ELAPSED")
+    ELAPSED_HMS=$(seconds_to_hms "$ELAPSED")
 }
 
 ###############################################################################
-# COLORES DINÁMICOS
+# DYNAMIC COLORS
 ###############################################################################
 
-calcular_colores()
+calculate_colors()
 {
-GPU_TEMP=${GPU_TEMP:-0}
+    GPU_TEMP=${GPU_TEMP:-0}
 
     BAR_COLOR=$GREEN
 
-    if (( PORCENTAJE_INT < 25 ))
+    if (( PROGRESS_INT < 25 ))
     then
         BAR_COLOR=$RED
 
-    elif (( PORCENTAJE_INT < 75 ))
+    elif (( PROGRESS_INT < 75 ))
     then
         BAR_COLOR=$YELLOW
     fi
@@ -107,66 +106,66 @@ GPU_TEMP=${GPU_TEMP:-0}
 }
 
 ###############################################################################
-# ESTADO
+# STATUS
 ###############################################################################
 
-estado()
+update_status()
 {
     if [[ ! -f "$PROGRESS_FILE" ]]; then
 
-        ESTADO="Esperando FFmpeg"
+        DISPLAY_STATUS="Waiting for FFmpeg"
 
     elif [[ "$STATUS" == "end" ]]; then
 
-        ESTADO="Finalizando"
+        DISPLAY_STATUS="Finishing"
 
     elif (( FRAME == 0 )); then
 
-        ESTADO="Esperando primeros fotogramas"
+        DISPLAY_STATUS="Waiting for first frames"
 
     else
 
-        ESTADO="Codificando correctamente"
+        DISPLAY_STATUS="Encoding"
 
     fi
 }
+
 ###############################################################################
-# BARRA DE PROGRESO
+# PROGRESS BAR
 ###############################################################################
 
-crear_barra()
+create_progress_bar()
 {
-    local porcentaje=$1
+    local progress=$1
 
-porcentaje=$(printf "%.0f" "$porcentaje")
+    progress=$(printf "%.0f" "$progress")
 
-    (( porcentaje > 100 )) && porcentaje=100
-    (( porcentaje < 0 )) && porcentaje=0
+    (( progress > 100 )) && progress=100
+    (( progress < 0 )) && progress=0
 
-    local llenos=$((porcentaje/2))
-    local vacios=$((50-llenos))
+    local filled=$((progress/2))
+    local empty=$((50-filled))
 
-    local barra=""
+    local bar=""
 
-    for ((i=0;i<llenos;i++))
+    for ((i=0;i<filled;i++))
     do
-        barra+="█"
+        bar+="█"
     done
 
-    for ((i=0;i<vacios;i++))
+    for ((i=0;i<empty;i++))
     do
-        barra+="░"
+        bar+="░"
     done
 
-    printf "%s" "$barra"
+    printf "%s" "$bar"
 }
 
-
 ###############################################################################
-# LEER PROGRESS
+# READ PROGRESS
 ###############################################################################
 
-leer_progress()
+read_progress()
 {
     FRAME=0
     FPS=0
@@ -176,10 +175,10 @@ leer_progress()
     STATUS=""
 
     if [[ ! -f "$PROGRESS_FILE" ]]
-then
-    STATUS="waiting"
-    return
-fi
+    then
+        STATUS="waiting"
+        return
+    fi
 
     while IFS="=" read -r key value
     do
@@ -197,9 +196,9 @@ fi
                 SPEED="$value"
                 ;;
 
-out_time_us)
-    [[ "$value" =~ ^[0-9]+$ ]] && OUT_US="$value"
-    ;;
+            out_time_us)
+                [[ "$value" =~ ^[0-9]+$ ]] && OUT_US="$value"
+                ;;
 
             progress)
                 STATUS="$value"
@@ -209,53 +208,54 @@ out_time_us)
 
     done < "$PROGRESS_FILE"
 
-    SEGUNDOS_PROCESADOS=$((OUT_US/1000000))
+    PROCESSED_SECONDS=$((OUT_US/1000000))
 }
 
 ###############################################################################
-# CALCULAR PROGRESO
+# CALCULATE PROGRESS
 ###############################################################################
 
-calcular_progreso()
+calculate_progress()
 {
-    PORCENTAJE=0
-    RESTANTE=0
+    PROGRESS=0
+    REMAINING=0
 
     if (( RAW_DUR > 0 ))
     then
 
-        PORCENTAJE=$(awk \
-            -v a="$SEGUNDOS_PROCESADOS" \
+        PROGRESS=$(awk \
+            -v a="$PROCESSED_SECONDS" \
             -v b="$RAW_DUR" \
             'BEGIN{printf "%.2f",(a/b)*100}')
 
-        (( SEGUNDOS_PROCESADOS > RAW_DUR )) && \
-            SEGUNDOS_PROCESADOS=$RAW_DUR
+        (( PROCESSED_SECONDS > RAW_DUR )) && \
+            PROCESSED_SECONDS=$RAW_DUR
 
-        RESTANTE=$((RAW_DUR-SEGUNDOS_PROCESADOS))
+        REMAINING=$((RAW_DUR-PROCESSED_SECONDS))
 
     fi
 
-    PORCENTAJE_INT=$(printf "%.0f" "$PORCENTAJE")
-if (( PORCENTAJE_INT > 100 )); then
-    PORCENTAJE_INT=100
-fi
+    PROGRESS_INT=$(printf "%.0f" "$PROGRESS")
 
-if (( PORCENTAJE_INT < 0 )); then
-    PORCENTAJE_INT=0
-fi
+    if (( PROGRESS_INT > 100 )); then
+        PROGRESS_INT=100
+    fi
+
+    if (( PROGRESS_INT < 0 )); then
+        PROGRESS_INT=0
+    fi
 }
 
 ###############################################################################
 # GPU
 ###############################################################################
 
-leer_gpu()
+read_gpu()
 {
-    local datos
+    local data
 
-datos=$(nvidia-smi \
-    --query-gpu=name,\
+    data=$(nvidia-smi \
+        --query-gpu=name,\
 utilization.gpu,\
 utilization.encoder,\
 utilization.decoder,\
@@ -263,9 +263,9 @@ temperature.gpu,\
 memory.used,\
 memory.total,\
 power.draw \
-    --format=csv,noheader,nounits 2>/dev/null || true)
+        --format=csv,noheader,nounits 2>/dev/null || true)
 
-[[ -z "$datos" ]] && return
+    [[ -z "$data" ]] && return
 
     IFS=',' read \
         GPU_NAME \
@@ -275,7 +275,7 @@ power.draw \
         GPU_TEMP \
         GPU_MEM_USED \
         GPU_MEM_TOTAL \
-        GPU_POWER <<< "$datos"
+        GPU_POWER <<< "$data"
 
     GPU_NAME=$(echo "$GPU_NAME" | xargs)
     GPU_USAGE=$(echo "$GPU_USAGE" | xargs)
@@ -287,7 +287,7 @@ power.draw \
     GPU_POWER=$(echo "$GPU_POWER" | xargs)
 }
 
-obtener_pid()
+get_pid()
 {
     PID=$(pgrep -x ffmpeg | head -n1)
 
@@ -300,7 +300,7 @@ obtener_pid()
 # ETA
 ###############################################################################
 
-calcular_eta()
+calculate_eta()
 {
     local s
 
@@ -311,7 +311,7 @@ calcular_eta()
     if [[ "$s" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
         if (( $(echo "$s > 0" | bc -l) )); then
             ETA=$(awk \
-                -v r="$RESTANTE" \
+                -v r="$REMAINING" \
                 -v s="$s" \
                 'BEGIN{printf "%.0f", r/s}')
         fi
@@ -319,52 +319,47 @@ calcular_eta()
 }
 
 ###############################################################################
-# HORA FINAL
+# FINISH TIME
 ###############################################################################
 
-hora_finalizacion()
+finish_time()
 {
-    FIN=$(date -d "+${ETA} seconds" +"%H:%M:%S")
+    FINISH_TIME=$(date -d "+${ETA} seconds" +"%H:%M:%S")
 }
 
-
-
 ###############################################################################
-# LEER EXTRA
+# READ EXTRA
 ###############################################################################
 
-###############################################################################
-# LEER EXTRA
-###############################################################################
-
-leer_extra()
+read_extra()
 {
-    encoder_usage=0
-    current_q="0.0"
+    ENCODER_USAGE=0
+    CURRENT_Q="0.0"
     START_EPOCH=0
 
-    CURRENT_FILE="Esperando..."
-    TITULO=""
+    CURRENT_FILE="Waiting..."
+    TITLE=""
     RAW_DUR=0
     PID="-"
 
-    ESTADO="esperando"
+    STATUS_TEXT="waiting"
 
     if [[ -f "$EXTRA_FILE" ]]; then
         source "$EXTRA_FILE"
     fi
 }
+
 ###############################################################################
-# PANTALLA
+# SCREEN
 ###############################################################################
 
-pintar()
+draw_screen()
 {
     clear
 
-    local barra
+    local bar
 
-    barra=$(crear_barra "$PORCENTAJE_INT")
+    bar=$(create_progress_bar "$PROGRESS_INT")
 
     echo -e "${BLUE}${BOLD}"
     echo "══════════════════════════════════════════════════════════════════════════════"
@@ -374,51 +369,51 @@ pintar()
 
     echo
 
-    printf "%-18s %s\n" "Archivo:" "$CURRENT_FILE"
-    printf "%-18s %s\n" "Título:" "$TITULO"
-    printf "%-18s %s\n" "Duración:" "$(segundos_hms "$RAW_DUR")"
+    printf "%-18s %s\n" "File:" "$CURRENT_FILE"
+    printf "%-18s %s\n" "Title:" "$TITLE"
+    printf "%-18s %s\n" "Duration:" "$(seconds_to_hms "$RAW_DUR")"
 
     echo
-    echo "$LINEA"
+    echo "$LINE"
 
     echo
-    echo -e "${BOLD}PROGRESO${RESET}"
+    echo -e "${BOLD}PROGRESS${RESET}"
     echo
 
     printf "%-18s %s / %s\n" \
-        "Tiempo:" \
-        "$(segundos_hms "$SEGUNDOS_PROCESADOS")" \
-        "$(segundos_hms "$RAW_DUR")"
+        "Time:" \
+        "$(seconds_to_hms "$PROCESSED_SECONDS")" \
+        "$(seconds_to_hms "$RAW_DUR")"
 
     printf "%-18s %.2f %%\n" \
-        "Porcentaje:" \
-        "$PORCENTAJE"
+        "Progress:" \
+        "$PERCENT"
 
     printf "%-18s [%b%s%b]\n" \
-    "Avance:" \
-    "$BAR_COLOR" \
-    "$barra" \
-    "$RESET"
+        "Bar:" \
+        "$BAR_COLOR" \
+        "$bar" \
+        "$RESET"
 
     echo
-    echo "$LINEA"
+    echo "$LINE"
 
     echo
-    echo -e "${BOLD}RENDIMIENTO${RESET}"
+    echo -e "${BOLD}PERFORMANCE${RESET}"
     echo
 
     printf "%-18s %s\n" "FPS:" "$FPS"
     printf "%-18s %s\n" "Speed:" "$SPEED"
-    printf "%-18s %s\n" "Q:" "$current_q"
+    printf "%-18s %s\n" "Q:" "$CURRENT_Q"
 
     echo
-    echo "$LINEA"
+    echo "$LINE"
 
     echo
     echo -e "${BOLD}GPU${RESET}"
     echo
 
-    printf "%-18s %s\n" "Modelo:" "$GPU_NAME"
+    printf "%-18s %s\n" "Model:" "$GPU_NAME"
     printf "%-18s %s %%\n" "GPU:" "$GPU_USAGE"
     printf "%-18s %s %%\n" "Encoder:" "$GPU_ENCODER"
     printf "%-18s %s %%\n" "Decoder:" "$GPU_DECODER"
@@ -429,64 +424,63 @@ pintar()
         "$GPU_MEM_TOTAL"
 
     printf "%-18s %b%s ºC%b\n" \
-    "Temperatura:" \
-    "$TEMP_COLOR" \
-    "$GPU_TEMP" \
-    "$RESET"
+        "Temperature:" \
+        "$TEMP_COLOR" \
+        "$GPU_TEMP" \
+        "$RESET"
 
     printf "%-18s %s W\n" \
-        "Potencia:" \
+        "Power:" \
         "$GPU_POWER"
 
     echo
-    echo "$LINEA"
+    echo "$LINE"
 
     echo
-    echo -e "${BOLD}TIEMPOS${RESET}"
+    echo -e "${BOLD}TIMING${RESET}"
     echo
-
-printf "%-18s %s\n" \
-    "Codificando:" \
-    "$ELAPSED_HMS"
 
     printf "%-18s %s\n" \
-        "Restante:" \
-        "$(segundos_hms "$RESTANTE")"
+        "Elapsed:" \
+        "$ELAPSED_HMS"
+
+    printf "%-18s %s\n" \
+        "Remaining:" \
+        "$(seconds_to_hms "$REMAINING")"
 
     printf "%-18s %s\n" \
         "ETA:" \
-        "$(segundos_hms "$ETA")"
+        "$(seconds_to_hms "$ETA")"
 
     printf "%-18s %s\n" \
-        "Finaliza:" \
-        "$FIN"
+        "Finish:" \
+        "$FINISH_TIME"
 
     echo
+    echo "$LINE"
 
-echo
-echo "$LINEA"
+    echo
+    echo -e "${BOLD}STATUS${RESET}"
+    echo
 
-echo
+    printf "%-18s %b●%b %s\n" \
+        "Status:" \
+        "$GREEN" \
+        "$RESET" \
+        "$STATUS_TEXT"
 
-echo -e "${BOLD}ESTADO${RESET}"
+    printf "%-18s %s\n" \
+        "PID:" \
+        "$PID"
 
-echo
-
-printf "%-18s %b●%b %s\n" \
-    "Estado:" \
-    "$GREEN" \
-    "$RESET" \
-    "$ESTADO"
-
-printf "%-18s %s\n" \
-    "PID:" \
-    "$PID"
-
-echo
-
+    echo
 }
 
-pintar_sin_proceso()
+###############################################################################
+# IDLE SCREEN
+###############################################################################
+
+draw_idle_screen()
 {
     clear
 
@@ -497,17 +491,17 @@ pintar_sin_proceso()
     echo -e "${RESET}"
 
     echo
-    echo -e "${YELLOW}●${RESET} No hay ninguna codificación en curso."
+    echo -e "${YELLOW}●${RESET} No encoding job is currently running."
     echo
-    echo "Esperando una nueva película..."
+    echo "Waiting for new movies..."
     echo
 }
 
 ###############################################################################
-# SERVICIO DETENIDO
+# SERVICE STOPPED
 ###############################################################################
 
-pintar_servicio_parado()
+draw_service_stopped()
 {
     clear
 
@@ -518,45 +512,43 @@ pintar_servicio_parado()
     echo -e "${RESET}"
 
     echo
-    echo -e "${RED}●${RESET} El servicio procesar.service está detenido."
+    echo -e "${RED}●${RESET} The transcoding service is stopped."
     echo
-    echo "Arráncalo con:"
+    echo "Start it with:"
     echo
     echo "sudo systemctl start procesar.service"
     echo
 }
 
 ###############################################################################
-# PROGRAMA PRINCIPAL
+# MAIN LOOP
 ###############################################################################
 
 while true
 do
     if ! systemctl is-active --quiet procesar.service; then
-        pintar_servicio_parado
+        draw_service_stopped
         sleep "$REFRESH"
         continue
     fi
 
-    leer_extra
+    read_extra
 
-    if [[ "$ESTADO" == "esperando" ]]; then
-        pintar_sin_proceso
+    if [[ "$STATUS_TEXT" == "waiting" ]]; then
+        draw_idle_screen
         sleep "$REFRESH"
         continue
     fi
 
-    leer_progress
-    calcular_progreso
-    leer_gpu
-    calcular_eta
-    hora_finalizacion
-    tiempo_transcurrido
-    calcular_colores
-    estado
-    pintar
+    read_progress
+    calculate_progress
+    read_gpu
+    calculate_eta
+    finish_time
+    calculate_elapsed_time
+    calculate_colors
+    update_status
+    draw_screen
 
     sleep "$REFRESH"
 done
-
-

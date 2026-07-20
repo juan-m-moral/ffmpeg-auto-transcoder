@@ -2,7 +2,7 @@
 
 ###############################################################################
 # FFmpeg Auto Transcoder
-# Desinstalador
+# UNINSTALLER
 ###############################################################################
 
 set -e
@@ -11,8 +11,8 @@ CONFIG_FILE="/etc/ffmpeg-auto-transcoder/install.conf"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
     echo
-    echo "No se ha encontrado información de la instalación."
-    echo "No es posible continuar con la desinstalación."
+    echo "Installation information was not found."
+    echo "Unable to continue with the uninstallation."
     echo
     exit 1
 fi
@@ -24,7 +24,7 @@ source "$CONFIG_FILE"
 ###############################################################################
 
 SERVICES=(
-    procesar.service
+    transcoder.service
     ffmpeg-monitor.service
 )
 
@@ -33,64 +33,65 @@ CONFIG_REMOVED=false
 MEDIA_REMOVED=false
 
 ###############################################################################
-# FUNCIONES
+# FUNCTIONS
 ###############################################################################
 
-check_root() {
-
+check_root()
+{
     if [[ $EUID -ne 0 ]]; then
         echo
-        echo "Este desinstalador debe ejecutarse con sudo."
+        echo "This uninstaller must be run with sudo."
         echo
         echo "sudo ./uninstall.sh"
         echo
         exit 1
     fi
-
 }
 
-stop_services() {
-
+stop_services()
+{
     echo
-    echo "[1/7] Deteniendo servicios..."
+    echo "[1/7] Stopping services..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
 
         if systemctl is-active --quiet "$SERVICE"; then
             systemctl stop "$SERVICE"
-            echo "✔ $SERVICE detenido"
+            echo "✔ $SERVICE stopped"
         else
-            echo "- $SERVICE ya estaba detenido"
+            echo "- $SERVICE is already stopped"
         fi
 
     done
-
 }
 
-disable_services() {
-
+disable_services()
+{
     echo
-    echo "[2/7] Deshabilitando servicios..."
+    echo "[2/7] Disabling services..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
 
         if systemctl is-enabled --quiet "$SERVICE" 2>/dev/null; then
             systemctl disable "$SERVICE" >/dev/null
-            echo "✔ $SERVICE deshabilitado"
+            echo "✔ $SERVICE disabled"
         else
-            echo "- $SERVICE ya estaba deshabilitado"
+            echo "- $SERVICE is already disabled"
         fi
 
     done
-
 }
 
-remove_service_files() {
+###############################################################################
+# REMOVE SERVICE FILES
+###############################################################################
 
+remove_service_files()
+{
     echo
-    echo "[3/7] Eliminando servicios..."
+    echo "[3/7] Removing service files..."
     echo
 
     for SERVICE in "${SERVICES[@]}"; do
@@ -101,121 +102,137 @@ remove_service_files() {
             rm -f "$SERVICE_FILE"
             echo "✔ $SERVICE_FILE"
         else
-            echo "- $SERVICE_FILE no existe"
+            echo "- $SERVICE_FILE does not exist"
         fi
 
     done
-
 }
 
-reload_systemd() {
+###############################################################################
+# RELOAD SYSTEMD
+###############################################################################
 
+reload_systemd()
+{
     echo
-    echo "[4/7] Recargando systemd..."
+    echo "[4/7] Reloading systemd..."
     echo
 
     systemctl daemon-reload
 
     echo "✔ daemon-reload"
-
 }
 
-remove_program() {
+###############################################################################
+# REMOVE PROGRAM
+###############################################################################
 
+remove_program()
+{
     echo
-    echo "[5/7] Eliminando programa..."
+    echo "[5/7] Removing program..."
     echo
 
     if [[ -d "$INSTALL_DIR" ]]; then
         rm -rf "$INSTALL_DIR"
-        echo "✔ $INSTALL_DIR eliminado"
+        echo "✔ $INSTALL_DIR removed"
         PROGRAM_REMOVED=true
     else
-        echo "- $INSTALL_DIR no existe"
+        echo "- $INSTALL_DIR does not exist"
     fi
-
 }
 
-remove_configuration() {
+###############################################################################
+# REMOVE CONFIGURATION
+###############################################################################
 
+remove_configuration()
+{
     echo
-    echo "[6/7] Eliminando configuración..."
+    echo "[6/7] Removing configuration..."
     echo
 
-    read -rp "¿Desea eliminar también la configuración? [s/N]: " RESP
+    read -rp "Do you also want to remove the configuration? [y/N]: " REPLY
 
-    if [[ "$RESP" =~ ^[Ss]$ ]]; then
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 
         if [[ -d "/etc/ffmpeg-auto-transcoder" ]]; then
             rm -rf /etc/ffmpeg-auto-transcoder
-            echo "✔ Configuración eliminada"
+            echo "✔ Configuration removed"
             CONFIG_REMOVED=true
         else
-            echo "- No existe configuración"
+            echo "- Configuration directory does not exist"
         fi
 
     else
 
-        echo "✔ Configuración conservada"
+        echo "✔ Configuration preserved"
 
     fi
-
 }
 
-remove_media_directory() {
+###############################################################################
+# REMOVE MEDIA LIBRARY
+###############################################################################
 
+remove_media_directory()
+{
     echo
-    echo "[7/7] Eliminando biblioteca multimedia..."
+    echo "[7/7] Removing media library..."
     echo
 
-    read -rp "¿Desea eliminar también la biblioteca multimedia? [s/N]: " RESP
+    read -rp "Do you also want to remove the media library? [y/N]: " REPLY
 
-    if [[ "$RESP" =~ ^[Ss]$ ]]; then
+    if [[ "$REPLY" =~ ^[Yy]$ ]]; then
 
         if [[ -d "$MEDIA_DIR" ]]; then
             rm -rf "$MEDIA_DIR"
-            echo "✔ Biblioteca multimedia eliminada"
+            echo "✔ Media library removed"
             MEDIA_REMOVED=true
         else
-            echo "- La biblioteca multimedia no existe"
+            echo "- Media library does not exist"
         fi
 
     else
 
-        echo "✔ Biblioteca multimedia conservada"
+        echo "✔ Media library preserved"
 
     fi
-
 }
 
-finish() {
+###############################################################################
+# FINISH
+###############################################################################
 
+finish()
+{
     echo
     echo "==============================================="
-    echo " Desinstalación completada correctamente"
+    echo " Uninstallation completed successfully"
     echo "==============================================="
     echo
 
     if $PROGRAM_REMOVED; then
-        echo "✔ Programa eliminado"
+        echo "✔ Program removed"
     else
-        echo "• Programa conservado"
+        echo "• Program preserved"
     fi
 
     if $CONFIG_REMOVED; then
-        echo "✔ Configuración eliminada"
+        echo "✔ Configuration removed"
     else
-        echo "✔ Configuración conservada"
+        echo "✔ Configuration preserved"
     fi
 
     if $MEDIA_REMOVED; then
-        echo "✔ Biblioteca multimedia eliminada"
+        echo "✔ Media library removed"
     else
-        echo "✔ Biblioteca multimedia conservada"
+        echo "✔ Media library preserved"
     fi
 
+    echo
+    echo "Media library:"
     echo "  $MEDIA_DIR"
-
 }
 
 ###############################################################################

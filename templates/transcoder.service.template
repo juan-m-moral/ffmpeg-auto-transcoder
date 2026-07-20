@@ -6,7 +6,7 @@ After=network-online.target
 Type=simple
 User=__USER__
 WorkingDirectory=__INSTALL_DIR__
-ExecStart=__INSTALL_DIR__/procesar.sh
+ExecStart=__INSTALL_DIR__/transcoder.sh
 Restart=on-failure
 RestartSec=5
 
