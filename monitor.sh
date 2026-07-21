@@ -4,6 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/tmdb.sh"
+source "$SCRIPT_DIR/lib/theme.sh"
 
 ###############################################################################
 # MONITOR
@@ -140,26 +141,22 @@ update_status()
 ###############################################################################
 
 create_progress_bar()
-{
-    local progress=$1
 
     progress=$(printf "%.0f" "$progress")
 
     (( progress > 100 )) && progress=100
     (( progress < 0 )) && progress=0
 
-    local filled=$((progress/2))
-    local empty=$((50-filled))
+    local filled=$((progress * width / 100))
+    local empty=$((width - filled))
 
     local bar=""
 
-    for ((i=0;i<filled;i++))
-    do
+    for ((i=0; i<filled; i++)); do
         bar+="█"
     done
 
-    for ((i=0;i<empty;i++))
-    do
+    for ((i=0; i<empty; i++)); do
         bar+="░"
     done
 
@@ -360,27 +357,42 @@ read_extra()
 
 draw_screen()
 {
-    clear
+clear
 
-    local bar
+local bar
 
-    bar=$(create_progress_bar "$PROGRESS_INT")
+title "🎬  FFmpeg Auto Transcoder"
 
-    echo -e "${BLUE}${BOLD}"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo "                   FFmpeg Auto Transcoder"
-    echo "══════════════════════════════════════════════════════════════════════════════"
-    echo -e "${RESET}"
+echo
 
-    printf "%-12s %s\n" "Title:" "$TITLE"
-    printf "%-12s %s\n" "File:" "$CURRENT_FILE"
+label "Title:"
+printf " "
+value "$TITLE"
+printf "\n"
 
-    echo
-    echo "$LINE"
+label "File:"
+printf " "
+value "$CURRENT_FILE"
+printf "\n"
 
-    echo
-    echo -e "${BOLD}NOW PROCESSING${RESET}"
-    echo
+section "⚙ NOW PROCESSING"
+
+section "⚙ NOW PROCESSING"
+
+local cols
+local label_width=12
+local percent_text
+local bar_width
+
+cols=$(terminal_width)
+
+percent_text=$(printf "%.2f %%" "$PERCENT")
+
+bar_width=$(( cols - label_width - ${#percent_text} - 8 ))
+
+(( bar_width < 20 )) && bar_width=20
+
+bar=$(create_progress_bar "$PROGRESS_INT" "$bar_width")
 
     printf "%-12s [%b%s%b] %.2f %%\n" \
         "Progress:" \
