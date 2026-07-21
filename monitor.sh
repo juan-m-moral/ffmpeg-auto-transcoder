@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/lib/tmdb.sh"
 # MONITOR
 ###############################################################################
 
-set -Eeuo pipefail
+set -Euo pipefail
 
 trap 'tput cnorm' EXIT
 
@@ -360,7 +360,7 @@ read_extra()
 
 draw_screen()
 {
-    printf '\033[H'
+    clear
 
     local bar
 
@@ -472,6 +472,10 @@ draw_queue()
 
     for file in "${files[@]}"; do
 
+        # Reiniciar variables por si normalize_filename no las define
+        TITLE=""
+        YEAR=""
+
         normalize_filename "$file"
 
         ((++shown))
@@ -480,7 +484,7 @@ draw_queue()
             printf "%d. %s (%s)\n" \
                 "$shown" \
                 "${TITLE:-Unknown}" \
-                "$YEAR"
+                "${YEAR:-}"
         else
             printf "%d. %s\n" \
                 "$shown" \
@@ -488,7 +492,6 @@ draw_queue()
         fi
 
         (( shown == 3 )) && break
-
     done
 
     if (( total > 3 )); then
@@ -496,8 +499,9 @@ draw_queue()
         echo "...and $((total-3)) more"
     fi
 
-    TITLE="$current_title"
-    YEAR="$current_year"
+    # Restaurar valores del trabajo actual
+    TITLE="${current_title:-}"
+    YEAR="${current_year:-}"
 }
 
 ###############################################################################

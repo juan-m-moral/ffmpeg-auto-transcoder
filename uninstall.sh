@@ -66,6 +66,25 @@ stop_services()
     done
 }
 
+kill_monitor_processes()
+{
+    echo
+    echo "Stopping remaining monitor processes..."
+    echo
+
+    pkill -TERM -f "ttyd.*monitor.sh" 2>/dev/null || true
+    pkill -TERM -f "bash -il -c ./monitor.sh" 2>/dev/null || true
+    pkill -TERM -f "/monitor.sh" 2>/dev/null || true
+
+    sleep 1
+
+    pkill -KILL -f "ttyd.*monitor.sh" 2>/dev/null || true
+    pkill -KILL -f "bash -il -c ./monitor.sh" 2>/dev/null || true
+    pkill -KILL -f "/monitor.sh" 2>/dev/null || true
+
+    echo "✔ Remaining monitor processes terminated"
+}
+
 disable_services()
 {
     echo
@@ -119,8 +138,9 @@ reload_systemd()
     echo
 
     systemctl daemon-reload
+    systemctl reset-failed
 
-    echo "✔ daemon-reload"
+    echo "✔ systemd reloaded"
 }
 
 ###############################################################################
@@ -241,6 +261,7 @@ finish()
 
 check_root
 stop_services
+kill_monitor_processes
 disable_services
 remove_service_files
 reload_systemd
