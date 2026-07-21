@@ -8,5 +8,5 @@ exec ttyd \
     -W \
     -i 0.0.0.0 \
     -p "$PORT" \
-    -t 'theme={"background":"#E2F2FF","foreground":"#1F2937"}' \
+    -t 'theme={"background":"#282C34","foreground":"#E6EDF3"}' \
     bash -il -c "./monitor.sh"
