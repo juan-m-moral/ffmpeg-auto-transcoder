@@ -29,9 +29,9 @@ Compatible with <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b> and other media server
 
 ## Overview
 
-**FFmpeg Auto Transcoder** is an automated movie transcoding service for Linux servers, NAS systems and home media libraries. It integrates seamlessly with **Jellyfin**, **Plex**, **Emby**, and any media server that monitors local folders.
+**FFmpeg Auto Transcoder** is an automated movie transcoding service for Linux servers, Docker deployments, NAS systems and home media libraries. It integrates seamlessly with **Jellyfin**, **Plex**, **Emby**, and any media server that monitors local folders.
 
-The application continuously watches an **incoming** directory, identifies new movies using **TMDb** and **OMDb**, transcodes them to **H.265/HEVC** with **NVIDIA NVENC** hardware acceleration, and automatically organizes the resulting files into a structured media library.
+The application continuously watches an **incoming** directory, identifies new movies using **TMDb** and **OMDb**, transcodes them to **H.265/HEVC** using **NVIDIA NVENC** hardware acceleration, and automatically organizes the resulting files into a structured media library.
 
 It can be installed either as a native Linux service or with **Docker Compose**, making it suitable for home servers, NAS devices and virtual machines. Once installed, it runs unattended, automatically processing every new movie placed in the monitored folder.
 
@@ -67,236 +67,6 @@ ffmpeg-auto-transcoder/
 ├── deploy/
 │   └── docker/
 └── README.md
-```
-
----
-
-# Requirements
-
-## Native Installation
-
-Requirements:
-
-- Linux (systemd-based distribution)
-- NVIDIA GPU with NVENC support
-- NVIDIA proprietary drivers
-- Internet connection (TMDb / OMDb access)
-- sudo privileges
-
-The installer automatically installs all required dependencies, including:
-
-- FFmpeg
-- rsync
-- jq
-- curl
-- bc
-- ttyd
-
----
-
-## Docker Deployment
-
-Requirements:
-
-- Docker Engine 29 or newer
-- Docker Compose v2
-- NVIDIA Container Toolkit
-- NVIDIA GPU with NVENC support
-- NVIDIA proprietary drivers
-- Internet connection (TMDb / OMDb access)
-
-The media library must be mounted as a writable bind mount using the configured `PUID` and `PGID`.
-
----
-
-# Media Library Structure
-
-When the containers start, the Docker entrypoint automatically creates the complete media library layout inside the configured media directory.
-
-```text
-MEDIA_DIR/
-├── incoming/
-├── processing/
-├── library/
-├── completed/
-├── failed/
-├── logs/
-└── temp/
-```
-
-Simply copy a movie into the **incoming** directory and the transcoder will take care of the rest.
-
----
-
-# Native Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
-
-cd ffmpeg-auto-transcoder
-```
-
-Make the installer executable:
-
-```bash
-chmod +x install.sh
-```
-
-Run the installer:
-
-```bash
-sudo ./install.sh
-```
-
-During installation you will be asked for:
-
-* Media library location
-* TMDb API key
-* OMDb API key
-
-The installer automatically:
-
-* Installs all required dependencies
-* Creates the media library directory structure
-* Copies the application to `/opt/ffmpeg-auto-transcoder`
-* Generates the configuration files
-* Installs and enables the required systemd services
-* Starts both the transcoder and the web monitor
-
----
-
-# Installed Services
-
-Two services are installed automatically:
-
-```text
-transcoder.service
-ffmpeg-monitor.service
-```
-
-Check their status:
-
-```bash
-sudo systemctl status transcoder.service
-
-sudo systemctl status ffmpeg-monitor.service
-```
-
-Restart them:
-
-```bash
-sudo systemctl restart transcoder.service
-
-sudo systemctl restart ffmpeg-monitor.service
-```
-
-Stop them:
-
-```bash
-sudo systemctl stop transcoder.service
-
-sudo systemctl stop ffmpeg-monitor.service
-```
-
----
-
-# Uninstall
-
-To completely remove the application:
-
-```bash
-sudo ./uninstall.sh
-```
-
-The uninstaller allows you to choose whether to keep or remove:
-
-* Configuration files
-* Media library
-
----
-
-# Docker Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
-
-cd ffmpeg-auto-transcoder/deploy/docker
-```
-
-Open the Docker Compose configuration:
-
-```bash
-nano docker-compose.yml
-```
-
-Configure the required values directly inside `docker-compose.yml`:
-
-* `PUID`
-* `PGID`
-* Host media library path
-* `TMDB_API_KEY`
-* `OMDB_API_KEY`
-* Time zone
-* Transcoding options
-
-You can obtain your user and group IDs with:
-
-```bash
-id
-```
-
-Example:
-
-```text
-uid=1000(john) gid=1000(john) groups=1000(john)
-```
-
-Make sure the configured host media directory exists and is writable by the selected `PUID` and `PGID`.
-
----
-
-## Build and Start
-
-Build the image and start the containers:
-
-```bash
-docker compose up -d --build
-```
-
-For subsequent starts:
-
-```bash
-docker compose up -d
-```
-
-The Docker entrypoint automatically creates all required media library subdirectories when the containers start.
-
----
-
-## Check the Containers
-
-```bash
-docker compose ps
-```
-
----
-
-## Web Monitor
-
-The web monitor is available at:
-
-```text
-http://SERVER_IP:9002
-```
-
-When accessing it from the same machine:
-
-```text
-http://localhost:9002
 ```
 
 ---
@@ -367,24 +137,23 @@ No `.env` file is required.
 
 Common options include:
 
-* User ID and group ID
-* Host media library path
-* TMDb API key
-* OMDb API key
-* Time zone
-* Target movie size
-* Minimum movie duration
-* Minimum video bitrate
-* Output resolution: 4K, 1440p, 1080p or 720p
+- User ID and group ID
+- Host media library path
+- TMDb API key
+- OMDb API key
+- Time zone
+- Target movie size
+- Minimum movie duration
+- Minimum video bitrate
+- Output resolution: 4K, 1440p, 1080p or 720p
 
 Each option is documented inside the Compose file.
-
 
 ---
 
 # Configuration
 
-All transcoding settings are stored in a single configuration file.
+All transcoding settings are stored in:
 
 ## Native Installation
 
@@ -394,10 +163,11 @@ All transcoding settings are stored in a single configuration file.
 
 ## Docker Deployment
 
-Configuration is provided through:
+Configuration is managed directly in:
 
-- `.env`
-- `docker-compose.yml`
+```text
+deploy/docker/docker-compose.yml
+```
 
 ---
 
@@ -416,7 +186,7 @@ Without valid API keys the application can still transcode movies, but automatic
 
 ## Media Library
 
-The application manages the following directory structure automatically:
+The application automatically manages the following directory structure:
 
 ```text
 MEDIA_DIR/
@@ -429,19 +199,17 @@ MEDIA_DIR/
 └── temp/
 ```
 
-The workflow is completely automatic.
+When a new movie is copied into **incoming**, the application automatically:
 
-When a new movie is copied into **incoming**, the application will:
+1. Detects the new file.
+2. Moves it to `processing`.
+3. Identifies the movie using TMDb and OMDb.
+4. Analyzes the media with FFprobe.
+5. Transcodes it to H.265 / HEVC.
+6. Saves the new file into `library`.
+7. Moves the original movie to `completed`.
 
-1. Detect the new file.
-2. Move it to `processing`.
-3. Identify the movie using TMDb and OMDb.
-4. Analyze the media with FFprobe.
-5. Transcode it to H.265 / HEVC.
-6. Save the new file into `library`.
-7. Move the original movie to `completed`.
-
-If the transcoding process fails, the original file is automatically moved to the `failed` directory.
+If transcoding fails, the original file is automatically moved to the `failed` directory.
 
 ---
 
@@ -449,7 +217,7 @@ If the transcoding process fails, the original file is automatically moved to th
 
 The target resolution can be configured in either `config.sh` or `docker-compose.yml`.
 
-Supported examples:
+Supported resolutions:
 
 | Resolution | Width | Height |
 |------------|------:|-------:|
@@ -484,46 +252,35 @@ During an active job it displays:
 - GPU power consumption
 - FFmpeg process ID
 
----
-
 ## Native Installation
-
-Once installed, the monitor is available at:
 
 ```text
 http://SERVER_IP:9001
 ```
 
-Example:
+Local access:
 
 ```text
-http://192.168.1.100:9001
+http://localhost:9001
 ```
-
----
 
 ## Docker Deployment
 
-Expose port **9001** in your `docker-compose.yml`:
-
-```yaml
-ports:
-  - "9001:9001"
+```text
+http://SERVER_IP:9002
 ```
 
-Then open:
+Local access:
 
 ```text
-http://SERVER_IP:9001
+http://localhost:9002
 ```
-
-from any browser connected to the same network.
 
 ---
 
 ## Idle Mode
 
-When no movie is being processed, the monitor automatically switches to an idle view showing useful system information, including:
+When no movie is being processed, the monitor automatically switches to an idle view showing:
 
 - Service status
 - GPU information
@@ -531,7 +288,7 @@ When no movie is being processed, the monitor automatically switches to an idle 
 - Pending movie count
 - Helpful management commands
 
-The display refreshes automatically, allowing you to monitor the system in real time without any manual interaction.
+The display refreshes automatically, allowing you to monitor the system in real time.
 
 ---
 
@@ -560,14 +317,17 @@ library
 completed
 ```
 
-If an unrecoverable error occurs, the original movie is safely moved to:
+If an unrecoverable error occurs, the original movie is automatically moved to:
 
 ```text
 failed/
 ```
+
+---
+
 # Hardware Acceleration
 
-FFmpeg Auto Transcoder takes advantage of **NVIDIA NVENC** hardware acceleration whenever a compatible GPU is available.
+FFmpeg Auto Transcoder uses **NVIDIA NVENC** hardware acceleration whenever a compatible GPU is available.
 
 Supported features include:
 
@@ -584,13 +344,13 @@ By offloading video encoding to the GPU, the application significantly reduces C
 
 # Logging
 
-Detailed logs are stored inside the media library:
+Detailed logs are stored in:
 
 ```text
 MEDIA_DIR/logs/
 ```
 
-These logs include transcoding activity, errors and progress information, making troubleshooting and auditing straightforward.
+The logs include transcoding activity, errors and progress information, making troubleshooting and auditing straightforward.
 
 ---
 
@@ -614,11 +374,9 @@ sudo ./install.sh
 
 The installer updates the application while preserving your existing configuration and media library.
 
----
-
 ## Docker Deployment
 
-Rebuild and restart the container:
+Rebuild and restart the containers:
 
 ```bash
 docker compose up -d --build
@@ -677,6 +435,6 @@ Suggestions and feature requests are always welcome.
 
 Automatically identify, transcode and organize your movie collection using **FFmpeg** and **NVIDIA NVENC**.
 
-Designed to work unattended, so you only need to copy your movies into the **incoming** directory and let the application handle the rest.
+Designed to run unattended on **Linux**, **Docker** and **NAS** environments—simply copy your movies into the **incoming** directory and let the application handle the rest.
 
 Happy transcoding! 🎬
