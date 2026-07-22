@@ -24,11 +24,11 @@ Automatic movie transcoding powered by <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
 
 ## Overview
 
-**FFmpeg Auto Transcoder** is an automated movie transcoding service designed for Linux servers, NAS systems and home media libraries.
+**FFmpeg Auto Transcoder** is an automated movie transcoding service for Linux servers, NAS systems and home media libraries. It integrates seamlessly with **Jellyfin**, **Plex**, **Emby**, and any media server that monitors local folders.
 
 The application continuously watches an **incoming** directory, identifies new movies using **TMDb** and **OMDb**, transcodes them to **H.265/HEVC** with **NVIDIA NVENC** hardware acceleration, and automatically organizes the resulting files into a structured media library.
 
-Once installed, the service runs unattended, automatically processing every new movie placed in the monitored folder.
+It can be installed either as a native Linux service or with **Docker Compose**, making it suitable for home servers, NAS devices and virtual machines. Once installed, it runs unattended, automatically processing every new movie placed in the monitored folder.
 
 ---
 
