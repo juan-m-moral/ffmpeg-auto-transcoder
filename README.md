@@ -22,7 +22,13 @@ Compatible with <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b> and other media server
 </p>
 
 <p align="center">
-  <img src="docs/images/monitor.png" width="800">
+  <img src="docs/images/monitor_1.png" width="800">
+</p>
+<p align="center">
+  <img src="docs/images/monitor_2.png" width="800">
+</p>
+<p align="center">
+  <img src="docs/images/monitor_3.png" width="800">
 </p>
 
 ---
