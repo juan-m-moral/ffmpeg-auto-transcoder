@@ -514,12 +514,11 @@ transcoder_is_running()
     if command -v systemctl >/dev/null 2>&1 &&
        systemctl list-unit-files transcoder.service >/dev/null 2>&1
     then
-        if ! transcoder_is_running; then
+        systemctl is-active --quiet transcoder.service
     else
         pgrep -f '[t]ranscoder.sh' >/dev/null 2>&1
     fi
 }
-
 ###############################################################################
 # MAIN LOOP
 ###############################################################################

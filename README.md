@@ -88,15 +88,14 @@ The installer automatically installs every required dependency, including:
 - ttyd
 
 ---
-
 ## Docker Deployment
 
 Docker support requires:
 
-- Docker Engine 29 or newer
-- Docker Compose v2
-- NVIDIA Container Toolkit
-- NVIDIA proprietary drivers
+* Docker Engine 29 or newer
+* Docker Compose v2
+* NVIDIA Container Toolkit
+* NVIDIA proprietary drivers
 
 The media library must be mounted as a writable Docker volume using the configured `PUID` and `PGID`.
 
@@ -104,7 +103,7 @@ The media library must be mounted as a writable Docker volume using the configur
 
 # Media Library Structure
 
-During installation the application creates the complete media library layout automatically.
+When the containers start, the Docker entrypoint automatically creates the complete media library layout inside the configured media directory.
 
 ```text
 MEDIA_DIR/
@@ -145,18 +144,18 @@ sudo ./install.sh
 
 During installation you will be asked for:
 
-- Media library location
-- TMDb API key
-- OMDb API key
+* Media library location
+* TMDb API key
+* OMDb API key
 
 The installer automatically:
 
-- Installs all required dependencies
-- Creates the media library directory structure
-- Copies the application to `/opt/ffmpeg-auto-transcoder`
-- Generates the configuration files
-- Installs and enables the required systemd services
-- Starts both the transcoder and the web monitor
+* Installs all required dependencies
+* Creates the media library directory structure
+* Copies the application to `/opt/ffmpeg-auto-transcoder`
+* Generates the configuration files
+* Installs and enables the required systemd services
+* Starts both the transcoder and the web monitor
 
 ---
 
@@ -205,36 +204,36 @@ sudo ./uninstall.sh
 
 The uninstaller allows you to choose whether to keep or remove:
 
-- Configuration files
-- Media library
+* Configuration files
+* Media library
 
-# Docker Deployment
+---
 
-Go to the Docker deployment directory:
+# Docker Installation
 
-```bash
-cd deploy/docker
-```
-
-Create your personal configuration file:
+Clone the repository:
 
 ```bash
-cp .env.example .env
+git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
+
+cd ffmpeg-auto-transcoder/deploy/docker
 ```
 
-Edit the configuration:
+Open the Docker Compose configuration:
 
 ```bash
-nano .env
+nano docker-compose.yml
 ```
 
-Configure the following values:
+Configure the required values directly inside `docker-compose.yml`:
 
-- `PUID`
-- `PGID`
-- `HOST_MEDIA`
-- `TMDB_API_KEY`
-- `OMDB_API_KEY`
+* `PUID`
+* `PGID`
+* Host media library path
+* `TMDB_API_KEY`
+* `OMDB_API_KEY`
+* Time zone
+* Transcoding options
 
 You can obtain your user and group IDs with:
 
@@ -248,11 +247,13 @@ Example:
 uid=1000(john) gid=1000(john) groups=1000(john)
 ```
 
+Make sure the configured host media directory exists and is writable by the selected `PUID` and `PGID`.
+
 ---
 
 ## Build and Start
 
-Build the image and start the container:
+Build the image and start the containers:
 
 ```bash
 docker compose up -d --build
@@ -264,17 +265,59 @@ For subsequent starts:
 docker compose up -d
 ```
 
+The Docker entrypoint automatically creates all required media library subdirectories when the containers start.
+
+---
+
+## Check the Containers
+
+```bash
+docker compose ps
+```
+
+---
+
+## Web Monitor
+
+The web monitor is available at:
+
+```text
+http://SERVER_IP:9002
+```
+
+When accessing it from the same machine:
+
+```text
+http://localhost:9002
+```
+
 ---
 
 ## View the Logs
+
+View logs from all containers:
 
 ```bash
 docker compose logs -f
 ```
 
+View only the transcoder logs:
+
+```bash
+docker compose logs -f transcoder
+```
+
+View only the monitor logs:
+
+```bash
+docker compose logs -f monitor
+```
+
+Press `Ctrl+C` to stop following the logs.
+
 ---
 
-## Stop the Container
+## Stop the Containers
 
 ```bash
 docker compose down
@@ -282,22 +325,52 @@ docker compose down
 
 ---
 
+## Restart the Containers
+
+```bash
+docker compose restart
+```
+
+---
+
+## Update the Application
+
+From the repository root:
+
+```bash
+git pull
+
+cd deploy/docker
+
+docker compose up -d --build
+```
+
+---
+
 ## Docker Configuration
 
-Most transcoding parameters can be adjusted directly in:
+All Docker configuration is managed directly in:
 
 ```text
 deploy/docker/docker-compose.yml
 ```
 
+No `.env` file is required.
+
 Common options include:
 
-- Target movie size
-- Minimum movie duration
-- Minimum video bitrate
-- Output resolution (4K, 1440p, 1080p or 720p)
+* User ID and group ID
+* Host media library path
+* TMDb API key
+* OMDb API key
+* Time zone
+* Target movie size
+* Minimum movie duration
+* Minimum video bitrate
+* Output resolution: 4K, 1440p, 1080p or 720p
 
 Each option is documented inside the Compose file.
+
 
 ---
 
