@@ -3,17 +3,22 @@
 </h1>
 
 <p align="center">
-Automatic movie transcoding powered by <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
+Automatic movie transcoding for <b>Linux</b>, <b>Docker</b> and <b>NAS</b> using <b>FFmpeg</b> and <b>NVIDIA NVENC</b>.
 </p>
 
 <p align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Linux](https://img.shields.io/badge/Linux-Ubuntu%2024.04-orange)
-![FFmpeg](https://img.shields.io/badge/FFmpeg-HEVC-blue)
+![Linux](https://img.shields.io/badge/Linux-Supported-orange)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED)
+![NAS](https://img.shields.io/badge/NAS-Supported-blueviolet)
 ![NVIDIA](https://img.shields.io/badge/NVIDIA-NVENC-76B900)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-HEVC-blue)
 
+</p>
+
+<p align="center">
+Compatible with <b>Jellyfin</b>, <b>Plex</b>, <b>Emby</b> and other media servers.
 </p>
 
 <p align="center">
@@ -34,17 +39,17 @@ It can be installed either as a native Linux service or with **Docker Compose**,
 
 # Features
 
-- 🎬 Automatic movie detection
-- 🚀 NVIDIA NVENC hardware acceleration
-- 📦 Automatic H.265 / HEVC transcoding
-- 🎞️ Movie identification using TMDb and OMDb
+- 🎬 Automatic movie detection and processing
+- 🚀 NVIDIA NVENC hardware-accelerated transcoding
+- 📦 H.265 / HEVC video encoding
+- 🎞️ Automatic movie identification using TMDb and OMDb
 - 📁 Automatic media library organization
 - 🌐 Real-time web monitor
-- ⚙️ Native Linux installation
-- 🐳 Docker Compose deployment
-- 🔄 Automatic startup with systemd
-- 📝 Detailed logging
+- 🐳 Docker Compose deployment for Linux and NAS
+- ⚙️ Native Linux installation with systemd integration
+- 🔄 Automatic startup and service recovery
 - 🛡️ Automatic recovery from stalled FFmpeg processes
+- 📝 Detailed logging and processing history
 
 ---
 
@@ -70,15 +75,15 @@ ffmpeg-auto-transcoder/
 
 ## Native Installation
 
-Recommended environment:
+Requirements:
 
-- Ubuntu 24.04 LTS
+- Linux (systemd-based distribution)
 - NVIDIA GPU with NVENC support
 - NVIDIA proprietary drivers
 - Internet connection (TMDb / OMDb access)
 - sudo privileges
 
-The installer automatically installs every required dependency, including:
+The installer automatically installs all required dependencies, including:
 
 - FFmpeg
 - rsync
@@ -88,16 +93,19 @@ The installer automatically installs every required dependency, including:
 - ttyd
 
 ---
+
 ## Docker Deployment
 
-Docker support requires:
+Requirements:
 
-* Docker Engine 29 or newer
-* Docker Compose v2
-* NVIDIA Container Toolkit
-* NVIDIA proprietary drivers
+- Docker Engine 29 or newer
+- Docker Compose v2
+- NVIDIA Container Toolkit
+- NVIDIA GPU with NVENC support
+- NVIDIA proprietary drivers
+- Internet connection (TMDb / OMDb access)
 
-The media library must be mounted as a writable Docker volume using the configured `PUID` and `PGID`.
+The media library must be mounted as a writable bind mount using the configured `PUID` and `PGID`.
 
 ---
 
