@@ -77,6 +77,144 @@ ffmpeg-auto-transcoder/
 
 ---
 
+# Installation
+
+Choose either the native Linux installation or Docker Compose. Do not use both methods at the same time.
+
+## Native Linux Installation
+
+Clone the repository and enter the project directory:
+
+```bash
+git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
+cd ffmpeg-auto-transcoder
+```
+
+Make the installation scripts executable:
+
+```bash
+chmod +x install.sh uninstall.sh
+```
+
+Run the installer:
+
+```bash
+sudo ./install.sh
+```
+
+Edit the native configuration:
+
+```bash
+sudo nano /etc/ffmpeg-auto-transcoder/config.sh
+```
+
+Restart the service after changing the configuration:
+
+```bash
+sudo systemctl restart transcoder.service
+```
+
+Check the service status:
+
+```bash
+sudo systemctl status transcoder.service
+```
+
+Follow the service logs:
+
+```bash
+sudo journalctl -u transcoder.service -f
+```
+
+Open the native web monitor:
+
+```text
+http://SERVER_IP:9001
+```
+
+To uninstall the native installation:
+
+```bash
+sudo ./uninstall.sh
+```
+
+## Docker Compose Installation
+
+Clone the repository and enter the Docker deployment directory:
+
+```bash
+git clone https://github.com/mcjmm1-git/ffmpeg-auto-transcoder.git
+cd ffmpeg-auto-transcoder/deploy/docker
+```
+
+Edit the Compose configuration:
+
+```bash
+nano docker-compose.yml
+```
+
+Validate the Compose file:
+
+```bash
+docker compose config
+```
+
+Build and start the containers:
+
+```bash
+docker compose up -d --build --remove-orphans
+```
+
+Check the container status:
+
+```bash
+docker compose ps
+```
+
+Follow logs from all services:
+
+```bash
+docker compose logs -f
+```
+
+Follow only the transcoder logs:
+
+```bash
+docker compose logs -f ffmpeg-auto-transcoder
+```
+
+Follow only the monitor logs:
+
+```bash
+docker compose logs -f ffmpeg-monitor
+```
+
+Open the Docker web monitor:
+
+```text
+http://SERVER_IP:9002
+```
+
+Stop and remove the containers:
+
+```bash
+docker compose down --remove-orphans
+```
+
+Restart the containers:
+
+```bash
+docker compose restart
+```
+
+Rebuild and recreate the containers after changing project files:
+
+```bash
+docker compose up -d --build --force-recreate --remove-orphans
+```
+
+---
+
 ## View the Logs
 
 View logs from all containers:
@@ -88,13 +226,13 @@ docker compose logs -f
 View only the transcoder logs:
 
 ```bash
-docker compose logs -f transcoder
+docker compose logs -f ffmpeg-auto-transcoder
 ```
 
 View only the monitor logs:
 
 ```bash
-docker compose logs -f monitor
+docker compose logs -f ffmpeg-monitor
 ```
 
 Press `Ctrl+C` to stop following the logs.
@@ -256,7 +394,6 @@ During an active job it displays:
 - GPU memory usage
 - GPU temperature
 - GPU power consumption
-- FFmpeg process ID
 
 ## Native Installation
 
@@ -372,9 +509,10 @@ git pull
 
 ## Native Installation
 
-Run the installer again:
+From the repository root, update the source and run the installer again:
 
 ```bash
+git pull
 sudo ./install.sh
 ```
 
@@ -382,10 +520,12 @@ The installer updates the application while preserving your existing configurati
 
 ## Docker Deployment
 
-Rebuild and restart the containers:
+From the repository root, update the source and rebuild the containers:
 
 ```bash
-docker compose up -d --build
+git pull
+cd deploy/docker
+docker compose up -d --build --force-recreate --remove-orphans
 ```
 
 ---
