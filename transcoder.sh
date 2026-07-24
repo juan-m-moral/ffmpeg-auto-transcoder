@@ -25,12 +25,16 @@ export LC_NUMERIC=C
 # CONFIGURATION
 ###############################################################################
 
+# Public/GitHub layout: one MEDIA_DIR tree, one incoming directory and one
+# final output directory (LIBRARY). PROCESSING is only temporary workspace.
 mkdir -p \
+    "$INCOMING" \
     "$PROCESSING" \
     "$LIBRARY" \
-    "$LOGS" \
     "$COMPLETED" \
-    "$FAILED"
+    "$FAILED" \
+    "$LOGS" \
+    "$TEMP"
 
 LOGFILE="${LOGS}/transcoder_$(date +%F_%H-%M-%S).log"
 
@@ -38,6 +42,14 @@ TARGET_TOTAL_BPS=$(awk \
     -v gb="$TARGET_GB" \
     -v min="$TARGET_MIN" \
     'BEGIN{printf "%.0f", (gb*1024*1024*1024*8)/(min*60)}')
+
+OUTPUT_SPACE_MARGIN_GB=${OUTPUT_SPACE_MARGIN_GB:-1}
+MIN_FREE_GB=${MIN_FREE_GB:-50}
+
+ESTIMATED_OUTPUT_GB=$(awk \
+    -v target="$TARGET_GB" \
+    -v margin="$OUTPUT_SPACE_MARGIN_GB" \
+    'BEGIN { printf "%.2f", target + margin }')
 
 ###############################################################################
 # FUNCTIONS
@@ -59,6 +71,33 @@ require_program()
     command -v "$1" >/dev/null 2>&1 || error "Program '$1' not found"
 }
 
+output_has_space()
+{
+    local estimated_gb="${1:-$ESTIMATED_OUTPUT_GB}"
+    local minimum_gb="${MIN_FREE_GB:-50}"
+
+    local estimated_kb
+    local minimum_kb
+    local free_kb
+    local remaining_kb
+
+    estimated_kb=$(awk \
+        -v gb="$estimated_gb" \
+        'BEGIN { printf "%.0f", gb * 1024 * 1024 }')
+
+    minimum_kb=$(awk \
+        -v gb="$minimum_gb" \
+        'BEGIN { printf "%.0f", gb * 1024 * 1024 }')
+
+    free_kb=$(df -Pk -- "$PROCESSING" 2>/dev/null |
+        awk 'END { print $4 }')
+
+    [[ "$free_kb" =~ ^[0-9]+$ ]] || return 1
+
+    remaining_kb=$((free_kb - estimated_kb))
+    (( remaining_kb >= minimum_kb ))
+}
+
 ###############################################################################
 # CHECK DEPENDENCIES
 ###############################################################################
@@ -66,6 +105,7 @@ require_program()
 require_program ffprobe
 require_program ffmpeg
 require_program jq
+require_program curl
 require_program bc
 
 [[ -d "$INCOMING" ]] || error "Incoming directory not found: $INCOMING"
@@ -73,9 +113,11 @@ require_program bc
 for DIR in \
     "$INCOMING" \
     "$PROCESSING" \
+    "$LIBRARY" \
     "$COMPLETED" \
     "$FAILED" \
-    "$LOGS"
+    "$LOGS" \
+    "$TEMP"
 do
     [[ -w "$DIR" ]] || error "Write permission denied: $DIR"
 done
@@ -115,17 +157,14 @@ EOF
 # PROCESS MOVIES
 ###############################################################################
 
+OUTPUT_BLOCKED=false
+
 for FILE in "${MOVIES[@]}"
 do
     [[ -f "$FILE" ]] || continue
 
     BASENAME=$(basename "$FILE")
     NAME="${BASENAME%.*}"
-    OUTFILE="${PROCESSING}/${NAME}.mkv"
-
-    log "==============================================================="
-    log "File: $BASENAME"
-    log "==============================================================="
 
     # Query external APIs safely
     TITLE="Unknown"
@@ -133,6 +172,60 @@ do
     VOTE="0"
     ID="0"
     IMDB_ID=""
+    MEDIA_TYPE="movie"
+    SEASON_NUMBER=""
+    EPISODE_NUMBER=""
+
+    # Keep normalized fallback metadata in the current shell. tmdb_search is
+    # executed inside command substitution, so variables changed there do not
+    # propagate back to this process.
+    normalize_filename "$FILE"
+    FALLBACK_TITLE="${TITLE:-$NAME}"
+    FALLBACK_YEAR="${YEAR:-}"
+
+    if ! output_has_space "$ESTIMATED_OUTPUT_GB"; then
+
+        log "The output directory cannot preserve ${MIN_FREE_GB} GB of free space."
+        log "The file remains in incoming: $BASENAME"
+
+        cat > "$EXTRA_FILE" <<EOF
+STATUS=waiting
+STATUS_TEXT=waiting
+CURRENT_FILE="Waiting for output directory space"
+EOF
+
+        OUTPUT_BLOCKED=true
+        break
+
+    fi
+
+    DESTINATION_DIR="$LIBRARY"
+
+    if [[ "$MEDIA_TYPE" == "episode" ]]; then
+        MEDIA_LABEL="Episode"
+    else
+        MEDIA_LABEL="Movie"
+    fi
+
+    OUTFILE="$PROCESSING/$NAME.mkv"
+    FINAL_FILE="$LIBRARY/$NAME.mkv"
+
+    if [[ -e "$FINAL_FILE" ]]; then
+
+        log "ERROR: Destination file already exists:"
+        log "$FINAL_FILE"
+        log "The source file will be moved to failed."
+
+        mv -- "$FILE" "$FAILED/"
+        continue
+
+    fi
+
+    log "==============================================================="
+    log "File: $BASENAME"
+    log "Media type: $MEDIA_TYPE"
+    log "Destination: $DESTINATION_DIR"
+    log "==============================================================="
 
     if command -v tmdb_search >/dev/null 2>&1; then
 
@@ -144,12 +237,28 @@ do
             TMDB_RESPONSE='{}'
         fi
 
-        TITLE=$(jq -r '.results[0].title // "Unknown"' <<<"$TMDB_RESPONSE")
+        if jq -e '.success == false or (.status_code? != null)' >/dev/null 2>&1 <<<"$TMDB_RESPONSE"; then
+            log "WARNING: TMDb API error: $(jq -r '.status_message // "Unknown error"' <<<"$TMDB_RESPONSE")"
+            TMDB_RESPONSE='{}'
+        fi
+
+        TITLE=$(jq -r \
+            --arg fallback "$FALLBACK_TITLE" \
+            '.results[0].title // $fallback' <<<"$TMDB_RESPONSE")
+
         YEAR=$(jq -r '.results[0].release_date // ""' <<<"$TMDB_RESPONSE" | cut -d- -f1)
+        [[ -n "$YEAR" ]] || YEAR="$FALLBACK_YEAR"
+
         VOTE=$(jq -r '.results[0].vote_average // 0' <<<"$TMDB_RESPONSE")
         ID=$(jq -r '.results[0].id // 0' <<<"$TMDB_RESPONSE")
 
-        if command -v tmdb_imdb_id >/dev/null 2>&1; then
+        if jq -e '(.results // []) | length == 0' >/dev/null 2>&1 <<<"$TMDB_RESPONSE"; then
+            log "WARNING: TMDb found no match. Using filename metadata: $FALLBACK_TITLE"
+        fi
+
+        if [[ "$ID" =~ ^[1-9][0-9]*$ ]] &&
+           command -v tmdb_imdb_id >/dev/null 2>&1
+        then
 
             EXTERNAL_IDS=$(tmdb_imdb_id "$ID" || echo "{}")
 
@@ -181,6 +290,9 @@ do
         if ! jq empty >/dev/null 2>&1 <<<"$OMDB_RESPONSE"; then
             log "ERROR: OMDb returned an invalid JSON response"
             log "$OMDB_RESPONSE"
+            OMDB_RESPONSE='{}'
+        elif jq -e '.Response == "False"' >/dev/null 2>&1 <<<"$OMDB_RESPONSE"; then
+            log "WARNING: OMDb: $(jq -r '.Error // "Unknown error"' <<<"$OMDB_RESPONSE")"
             OMDB_RESPONSE='{}'
         fi
 
@@ -325,7 +437,7 @@ log "Target video bitrate: $(awk -v b="$CALC_VIDEO_BPS" 'BEGIN{printf "%.2f", b/
 # Configure HDR color metadata for NVENC output
 FFMPEG_EXTRA_FLAGS=()
 
-if [[ "$HDR" == "SI" || "$PIXFMT" == *"10"* ]]; then
+if [[ "$HDR" == "YES" || "$PIXFMT" == *"10"* ]]; then
     if [[ "$COLOR_TRANSFER" == "smpte2084" ]]; then
         FFMPEG_EXTRA_FLAGS+=(
             -color_primaries bt2020
@@ -473,8 +585,11 @@ EOF
         fi
     done
 
-    wait "$FFMPEG_PID"
-    FFMPEG_EXIT=$?
+    if wait "$FFMPEG_PID"; then
+        FFMPEG_EXIT=0
+    else
+        FFMPEG_EXIT=$?
+    fi
 
     (( FFMPEG_EXIT == 0 )) && break
 
@@ -518,19 +633,41 @@ else
 
     rm -f "$PROGRESS_FILE" "$EXTRA_FILE"
 
-    # Move completed movie into the media library
-    if mv "$OUTFILE" "$LIBRARY/"; then
-        log "Movie moved to library: $LIBRARY/$NAME.mkv"
-        mv "$FILE" "$COMPLETED/"
+    # Never overwrite an existing library file.
+    if [[ -e "$FINAL_FILE" ]]; then
+
+        log "ERROR: Destination file already exists:"
+        log "$FINAL_FILE"
+
+        rm -f -- "$OUTFILE"
+        mv -- "$FILE" "$FAILED/"
+
+    elif mv -- "$OUTFILE" "$FINAL_FILE"; then
+
+        log "$MEDIA_LABEL moved to library: $FINAL_FILE"
+        mv -- "$FILE" "$COMPLETED/"
+
     else
-        log "ERROR: Failed to move movie into the library."
-        rm -f "$OUTFILE"
-        mv "$FILE" "$FAILED/"
+
+        log "ERROR: Failed to move $MEDIA_LABEL into the library."
+
+        rm -f -- "$OUTFILE"
+        mv -- "$FILE" "$FAILED/"
+
     fi
 
 fi
 
 done
+
+if $OUTPUT_BLOCKED; then
+
+    log "Waiting 60 seconds before checking output disks again..."
+
+    sleep 60
+    continue
+
+fi
 
 log "Batch completed. Waiting for new files..."
 
